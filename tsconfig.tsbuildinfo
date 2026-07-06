@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/sidebar.tsx","./src/context/formcontext.tsx","./src/pages/downloadppt.tsx","./src/pages/settings.tsx","./src/pages/stepperapp.tsx"],"version":"6.0.3"}

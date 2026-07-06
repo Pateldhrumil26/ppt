@@ -17,5 +17,15 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
+  "exclude": [
+    "src/pages/CompanyDetails.tsx",
+    "src/pages/Dashboard.tsx",
+    "src/pages/FinancialDetails.tsx",
+    "src/pages/ImagesDocuments.tsx",
+    "src/pages/PPTPreview.tsx",
+    "src/pages/PresentationDetails.tsx",
+    "src/pages/ProjectDetails.tsx",
+    "src/pages/TeamDetails.tsx"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

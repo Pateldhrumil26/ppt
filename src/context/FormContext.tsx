@@ -65,12 +65,111 @@ export interface Slide5Data {
   constructionImage: File | null;
 }
 
+export interface Slide6Data {
+  slideNumber: string;
+  title: string;
+  subtitle: string;
+  floorHeightLabel: string;
+  floorHeightValue: string;
+  frontageLabel: string;
+  frontageValue: string;
+  parkingLabel: string;
+  parkingValue: string;
+  roadAccessLabel: string;
+  roadAccessValue: string;
+  planImage: File | null;
+}
+
+export interface Slide7Data {
+  slideNumber: string;
+  title: string;
+  subtitle: string;
+  floorHeightLabel: string;
+  floorHeightValue: string;
+  bestForLabel: string;
+  bestForValue: string;
+  terraceLabel: string;
+  terraceValue: string;
+  liftStaircaseLabel: string;
+  liftStaircaseValue: string;
+  planImage: File | null;
+}
+
+export interface Slide8Data {
+  slideNumber: string;
+  title: string;
+  subtitle: string;
+  brandList: string;
+  mapImage: File | null;
+}
+
+export interface Slide9Data {
+  slideNumber: string;
+  title: string;
+  subtitle: string;
+  label1: string;
+  img1: File | null;
+  label2: string;
+  img2: File | null;
+  label3: string;
+  img3: File | null;
+  label4: string;
+  img4: File | null;
+  label5: string;
+  img5: File | null;
+}
+
+export interface Slide10Data {
+  slideNumber: string;
+  title: string;
+  spec1Label: string;
+  spec1Value: string;
+  spec2Label: string;
+  spec2Value: string;
+  spec3Label: string;
+  spec3Value: string;
+  spec4Label: string;
+  spec4Value: string;
+  spec5Label: string;
+  spec5Value: string;
+  spec6Label: string;
+  spec6Value: string;
+  spec7Label: string;
+  spec7Value: string;
+  spec8Label: string;
+  spec8Value: string;
+  spec9Label: string;
+  spec9Value: string;
+  spec10Label: string;
+  spec10Value: string;
+  qrUrl: string;
+  qrImage: File | null;
+}
+
+export interface Slide11Data {
+  slideNumber: string;
+  title: string;
+  card1Label: string;
+  card2Label: string;
+  card3Label: string;
+  card4Label: string;
+  card5Label: string;
+  card6Label: string;
+  card7Label: string;
+}
+
 export interface AllSlides {
   slide1: Slide1Data;
   slide2: Slide2Data;
   slide3: Slide3Data;
   slide4: Slide4Data;
   slide5: Slide5Data;
+  slide6: Slide6Data;
+  slide7: Slide7Data;
+  slide8: Slide8Data;
+  slide9: Slide9Data;
+  slide10: Slide10Data;
+  slide11: Slide11Data;
 }
 
 interface FormContextType {
@@ -80,6 +179,12 @@ interface FormContextType {
   updateSlide3: (d: Partial<Slide3Data>) => void;
   updateSlide4: (d: Partial<Slide4Data>) => void;
   updateSlide5: (d: Partial<Slide5Data>) => void;
+  updateSlide6: (d: Partial<Slide6Data>) => void;
+  updateSlide7: (d: Partial<Slide7Data>) => void;
+  updateSlide8: (d: Partial<Slide8Data>) => void;
+  updateSlide9: (d: Partial<Slide9Data>) => void;
+  updateSlide10: (d: Partial<Slide10Data>) => void;
+  updateSlide11: (d: Partial<Slide11Data>) => void;
 }
 
 const initial: AllSlides = {
@@ -143,6 +248,93 @@ const initial: AllSlides = {
     currentStatus: 'JUNE 2026',
     constructionImage: null,
   },
+  slide6: {
+    slideNumber: '06',
+    title: 'GROUND FLOOR PLAN',
+    subtitle: 'RETAIL SPACES',
+    floorHeightLabel: 'Floor Height',
+    floorHeightValue: "12'5\"",
+    frontageLabel: 'Frontage',
+    frontageValue: "20' to 35'",
+    parkingLabel: 'Parking',
+    parkingValue: 'Ample Two Wheeler\n& Four Wheeler',
+    roadAccessLabel: 'Road Access',
+    roadAccessValue: '30 MT Wide Road',
+    planImage: null,
+  },
+  slide7: {
+    slideNumber: '07',
+    title: 'SECOND FLOOR PLAN',
+    subtitle: 'RETAIL SPACES',
+    floorHeightLabel: 'Floor Height',
+    floorHeightValue: "9'5\"",
+    bestForLabel: 'Best for',
+    bestForValue: 'F&B / Lifestyle / Offices',
+    terraceLabel: 'Open Terrace',
+    terraceValue: 'Provision',
+    liftStaircaseLabel: 'Lift & Staircase',
+    liftStaircaseValue: 'Access',
+    planImage: null,
+  },
+  slide8: {
+    slideNumber: '08',
+    title: 'BRAND LOCATION MAP',
+    subtitle: 'BE IN THE COMPANY OF THE BEST',
+    brandList: 'FASHION & APPAREL\nJEWELLERY\nFOOD & BEVERAGE\nLIFESTYLE & OTHERS\nCORPORATE OFFICES\nSHOPPING DESTINATIONS',
+    mapImage: null,
+  },
+  slide9: {
+    slideNumber: '09',
+    title: 'LIFESTYLE AROUND YOU',
+    subtitle: 'EVERYTHING NEARBY',
+    label1: 'FINE DINING',
+    img1: null,
+    label2: 'SHOPPING',
+    img2: null,
+    label3: 'FITNESS',
+    img3: null,
+    label4: 'ENTERTAINMENT',
+    img4: null,
+    label5: 'RESIDENTIAL CATCHMENT',
+    img5: null,
+  },
+  slide10: {
+    slideNumber: '10',
+    title: 'PROPERTY SPECIFICATIONS',
+    spec1Label: 'Project Type',
+    spec1Value: 'Commercial',
+    spec2Label: 'Location',
+    spec2Value: 'Sindhu Bhavan Road, Bodakdev, Ahmedabad',
+    spec3Label: 'Jewellery Brands',
+    spec3Value: 'Tanishq, Malabar, PC Jeweller & More',
+    spec4Label: 'Apparel Brands',
+    spec4Value: 'Zara, H&M, Trends, Lifestyle & More',
+    spec5Label: 'F&B Outlets',
+    spec5Value: "McDonald's, Starbucks, The White Crow & More",
+    spec6Label: 'Ground Floor Height',
+    spec6Value: '12\'5"',
+    spec7Label: 'First Floor Height',
+    spec7Value: '10\'5"',
+    spec8Label: 'Second Floor Height',
+    spec8Value: '9\'5"',
+    spec9Label: 'Possession',
+    spec9Value: 'March 2027',
+    spec10Label: 'Google Maps',
+    spec10Value: 'Scan QR Code',
+    qrUrl: 'https://maps.google.com',
+    qrImage: null,
+  },
+  slide11: {
+    slideNumber: '11',
+    title: 'WHY INVEST IN\nMADHAV HIGHSTREET?',
+    card1Label: 'Prime Location\nHigh Visibility',
+    card2Label: 'Surrounded by\nPremium Brands',
+    card3Label: 'High Footfall\nCatchment',
+    card4Label: 'Modern Architecture\n& Design',
+    card5Label: 'Excellent\nConnectivity & Access',
+    card6Label: 'Strong Investment\n& Returns',
+    card7Label: 'Strong Investment\nPotential',
+  },
 };
 
 const FormContext = createContext<FormContextType | undefined>(undefined);
@@ -160,9 +352,21 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     setData(prev => ({ ...prev, slide4: { ...prev.slide4, ...d } }));
   const updateSlide5 = (d: Partial<Slide5Data>) =>
     setData(prev => ({ ...prev, slide5: { ...prev.slide5, ...d } }));
+  const updateSlide6 = (d: Partial<Slide6Data>) =>
+    setData(prev => ({ ...prev, slide6: { ...prev.slide6, ...d } }));
+  const updateSlide7 = (d: Partial<Slide7Data>) =>
+    setData(prev => ({ ...prev, slide7: { ...prev.slide7, ...d } }));
+  const updateSlide8 = (d: Partial<Slide8Data>) =>
+    setData(prev => ({ ...prev, slide8: { ...prev.slide8, ...d } }));
+  const updateSlide9 = (d: Partial<Slide9Data>) =>
+    setData(prev => ({ ...prev, slide9: { ...prev.slide9, ...d } }));
+  const updateSlide10 = (d: Partial<Slide10Data>) =>
+    setData(prev => ({ ...prev, slide10: { ...prev.slide10, ...d } }));
+  const updateSlide11 = (d: Partial<Slide11Data>) =>
+    setData(prev => ({ ...prev, slide11: { ...prev.slide11, ...d } }));
 
   return (
-    <FormContext.Provider value={{ data, updateSlide1, updateSlide2, updateSlide3, updateSlide4, updateSlide5 }}>
+    <FormContext.Provider value={{ data, updateSlide1, updateSlide2, updateSlide3, updateSlide4, updateSlide5, updateSlide6, updateSlide7, updateSlide8, updateSlide9, updateSlide10, updateSlide11 }}>
       {children}
     </FormContext.Provider>
   );
