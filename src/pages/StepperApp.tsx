@@ -6,6 +6,7 @@ import {
   Landmark, Train, Bus, Plane, ShoppingBasket, MapPin, Route,
   CheckCircle2, Loader2, Clock, Calendar, Diamond, ChevronRight,
   ChevronLeft, Download, Eye, Ruler, Expand, Car, Map, Briefcase, Sun, Building, Gem, ArrowUpDown, ScanLine, BarChart3,
+  Phone, Mail, Globe,
 } from 'lucide-react';
 
 // Import pptxgenjs dynamically
@@ -709,7 +710,290 @@ function Slide11Preview() {
   );
 }
 
-const SLIDE_PREVIEWS = [Slide1Preview, Slide2Preview, Slide3Preview, Slide4Preview, Slide5Preview, Slide6Preview, Slide7Preview, Slide8Preview, Slide9Preview, Slide10Preview, Slide11Preview];
+function SlideSiteVisibilityPreview() {
+  const { data: { slideSiteVisibility: s } } = useFormData();
+  const hc = '#3d1a6e', ac = '#f97316';
+  
+  const viewImages = [
+    { label: 'LEFT VIEW', image: s.leftViewImage },
+    { label: 'FRONT VIEW', image: s.frontViewImage },
+    { label: 'RIGHT VIEW', image: s.rightViewImage },
+  ];
+
+  const defaultImages = [
+    'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=800&auto=format&fit=crop',
+  ];
+
+  return (
+    <SlideShell>
+      <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '4%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '3%' }}>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>{s.slideNumber || '06'}</div>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1 }}>{s.title || 'SITE VISIBILITY'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(10px,2vw,22px)', color: ac, lineHeight: 1 }}>{s.subtitle || 'EXCELLENT FRONTAGE & ACCESS'}</div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'clamp(8px,1.5vw,20px)', marginTop: '2%' }}>
+          {viewImages.map((view, i) => {
+            const imgSrc = view.image ? URL.createObjectURL(view.image) : defaultImages[i];
+            return (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(4px,0.8vw,10px)' }}>
+                <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                  <img src={imgSrc} alt={view.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 'clamp(8px,1.2vw,14px)', color: hc, textAlign: 'center' }}>{view.label}</div>
+                <div style={{ width: '60%', height: 2, background: hc }} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SlideShell>
+  );
+}
+
+function SlideFirstFloorPlanPreview() {
+  const { data: { slideFirstFloorPlan: s } } = useFormData();
+  const hc = '#3d1a6e', ac = '#f97316';
+  const floorPlanSrc = s.floorPlanImage ? URL.createObjectURL(s.floorPlanImage) : null;
+
+  const features = [
+    { icon: '📏', title: s.feature1Title || 'Floor Height', desc: s.feature1Desc || '10\'5"' },
+    { icon: '📐', title: s.feature2Title || 'Frontage', desc: s.feature2Desc || '18\' to 28\'' },
+    { icon: '🅿️', title: s.feature3Title || 'Parking', desc: s.feature3Desc || 'Ample' },
+    { icon: '🛗', title: s.feature4Title || 'Escalator & Lift', desc: s.feature4Desc || 'For Easy Access' },
+  ];
+
+  return (
+    <SlideShell>
+      <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
+      {/* Right: Floor plan image */}
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '55%' }}>
+        {floorPlanSrc ? (
+          <img src={floorPlanSrc} alt="Floor Plan" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '2%' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyItems: 'center', background: '#f9fafb' }}>
+            <div style={{ textAlign: 'center', color: '#9ca3af', margin: 'auto' }}>
+              <div style={{ fontSize: 'clamp(20px,3vw,40px)', marginBottom: 8 }}>📐</div>
+              <div style={{ fontSize: 'clamp(6px,1vw,12px)' }}>First Floor Plan Diagram</div>
+            </div>
+          </div>
+        )}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,transparent 40%,white 100%)' }} />
+      </div>
+
+      {/* Left content */}
+      <div style={{ position: 'absolute', inset: 0, padding: '5%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '5%' }}>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>{s.slideNumber || '08'}</div>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: hc, lineHeight: 1.1 }}>{s.title || 'FIRST FLOOR PLAN'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || 'RETAIL SPACES'}</div>
+          </div>
+        </div>
+
+        {/* Features list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(7px,1.3vw,16px)' }}>
+          {features.map((f, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <div style={{ fontSize: 'clamp(12px,1.8vw,22px)', lineHeight: 1 }}>{f.icon}</div>
+              <div>
+                <div style={{ fontSize: 'clamp(5px,0.85vw,10px)', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.title}</div>
+                <div style={{ fontWeight: 700, color: hc, fontSize: 'clamp(6px,1.1vw,13px)', whiteSpace: 'pre-line' }}>{f.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </SlideShell>
+  );
+}
+
+function SlideNearbyCommercialPreview() {
+  const { data: { slideNearbyCommercial: s } } = useFormData();
+  const hc = '#3d1a6e', ac = '#f97316';
+  const ecosystemSrc = s.ecosystemImage ? URL.createObjectURL(s.ecosystemImage) : null;
+
+  const buildings = [
+    { name: s.building1Name || 'THE WHITE CROW', distance: s.building1Distance || '150 M', image: s.building1Image },
+    { name: s.building2Name || 'STELLAR', distance: s.building2Distance || '200 M', image: s.building2Image },
+    { name: s.building3Name || 'TWIN LILAC', distance: s.building3Distance || '500 M', image: s.building3Image },
+    { name: s.building4Name || 'NOVA', distance: s.building4Distance || '450 M', image: s.building4Image },
+    { name: s.building5Name || 'ARISTA', distance: s.building5Distance || '500 M', image: s.building5Image },
+    { name: s.building6Name || 'DOM ETERNUS', distance: s.building6Distance || '700 M', image: s.building6Image },
+    { name: s.building7Name || 'PALLADIUM', distance: s.building7Distance || '900 M', image: s.building7Image },
+    { name: s.building8Name || 'PENTAGON', distance: s.building8Distance || '1.2 KM', image: s.building8Image },
+  ];
+
+  return (
+    <SlideShell>
+      <div style={{ position: 'absolute', inset: 0, background: '#f8f9fa' }} />
+      {ecosystemSrc && (
+        <img src={ecosystemSrc} alt="Ecosystem" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }} />
+      )}
+      
+      {/* Content */}
+      <div style={{ position: 'absolute', inset: 0, padding: '5%', display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '4%' }}>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(10px,1.5vw,18px)', padding: '4px 10px', borderRadius: 4, flexShrink: 0 }}>{s.slideNumber || '12'}</div>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(14px,3vw,36px)', color: hc, lineHeight: 1.1 }}>{s.title || 'NEARBY COMMERCIAL'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(14px,3vw,36px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || 'ECOSYSTEM'}</div>
+            <div style={{ fontSize: 'clamp(7px,1.1vw,13px)', color: '#6b7280', marginTop: 4, fontStyle: 'italic' }}>Surrounded by Successful Businesses</div>
+          </div>
+        </div>
+
+        {/* Buildings grid - 2 rows x 4 columns */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'clamp(8px,1.5vw,20px)', marginTop: 'auto', marginBottom: 'auto' }}>
+          {buildings.map((building, i) => {
+            const imageSrc = building.image ? URL.createObjectURL(building.image) : null;
+            return (
+              <div key={i} style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                {/* Building image or placeholder */}
+                <div style={{ width: '100%', aspectRatio: '16/10', background: `linear-gradient(135deg, ${hc}dd 0%, ${hc}99 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                  {imageSrc ? (
+                    <img src={imageSrc} alt={building.name} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+                  ) : (
+                    <div style={{ fontSize: 'clamp(20px,3vw,40px)', position: 'relative', zIndex: 1 }}>🏢</div>
+                  )}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: hc, color: '#fff', padding: 'clamp(4px,0.8vw,10px)', textAlign: 'center', fontSize: 'clamp(6px,1vw,12px)', fontWeight: 700, letterSpacing: '0.05em', zIndex: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {building.name}
+                  </div>
+                </div>
+                {/* Distance */}
+                <div style={{ background: '#fff', padding: 'clamp(6px,1vw,12px)', textAlign: 'center', fontSize: 'clamp(8px,1.2vw,14px)', fontWeight: 700, color: hc, borderTop: `2px solid ${ac}` }}>
+                  {building.distance}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SlideShell>
+  );
+}
+
+function SlideContactPreview() {
+  const { data: { slideContact: s } } = useFormData();
+  const hc = '#3d1a6e', ac = '#f97316';
+  const logoSrc = s.companyLogo ? URL.createObjectURL(s.companyLogo) : null;
+
+  return (
+    <SlideShell>
+      {/* Dark purple background */}
+      <div style={{ position: 'absolute', inset: 0, background: '#1a0a2e' }} />
+      
+      {/* Large background logo/icon watermark */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.05 }}>
+        <Building2 size="300" strokeWidth={1} style={{ color: '#fff' }} />
+      </div>
+
+      {/* Content */}
+      <div style={{ position: 'absolute', inset: 0, color: '#fff' }}>
+        
+        {/* Top Left: Slide number badge */}
+        <div style={{ 
+          position: 'absolute', top: '12%', left: '8%',
+          background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(9px,1.2vw,14px)',
+          padding: '4px 10px', borderRadius: 4
+        }}>
+          {s.slideNumber || '15'}
+        </div>
+        
+        {/* Main heading */}
+        <h1 style={{ 
+          position: 'absolute', top: '25%', left: '8%', width: '48%',
+          fontSize: 'clamp(20px,4.2vw,48px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1,
+          whiteSpace: 'pre-line'
+        }}>
+          {s.heading || "LET'S BUILD\nSOMETHING ICONIC\nTOGETHER"}
+        </h1>
+
+        {/* Bottom Left: Company logo and name */}
+        <div style={{ position: 'absolute', bottom: '12%', left: '8%', display: 'flex', alignItems: 'center', gap: 12 }}>
+          {logoSrc ? (
+            <img src={logoSrc} alt="Logo" style={{ width: 'clamp(36px,4.5vw,56px)', height: 'clamp(36px,4.5vw,56px)', borderRadius: 8, objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: 'clamp(36px,4.5vw,56px)', height: 'clamp(36px,4.5vw,56px)', borderRadius: 8, background: 'linear-gradient(135deg,#f97316 0%,#ea580c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 'clamp(16px,2vw,26px)', color: '#fff' }}>
+              A
+            </div>
+          )}
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 'clamp(14px,1.8vw,22px)', lineHeight: 1.2 }}>{s.companyName || 'AESTHETIC ARC'}</div>
+            <div style={{ fontSize: 'clamp(7px,0.9vw,11px)', opacity: 0.7, lineHeight: 1.2, marginTop: 2 }}>{s.companyTagline || 'PROPERTY LEASING COMPANY'}</div>
+          </div>
+        </div>
+
+        {/* Right: Contact details */}
+        <div style={{ position: 'absolute', top: '20%', right: '8%', width: '38%', display: 'flex', flexDirection: 'column', gap: 'clamp(12px,2vw,24px)' }}>
+          <div style={{ fontSize: 'clamp(8px,1.1vw,14px)', fontWeight: 700, letterSpacing: '0.15em', opacity: 0.9, marginBottom: 4 }}>GET IN TOUCH</div>
+          
+          {/* Phone with icon circles */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Phone size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+              </div>
+              <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.phone1 || '+91 97129 06363'}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'clamp(22px,2.8vw,32px)' }}>
+              <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.phone2 || '+91 97129 06364'}</span>
+            </div>
+          </div>
+
+          {/* Email */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Mail size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+            </div>
+            <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.email || 'info@aestheticarc.com'}</span>
+          </div>
+
+          {/* Website */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Globe size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+            </div>
+            <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.website || 'www.aestheticarc.com'}</span>
+          </div>
+
+          {/* Address */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <MapPin size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+            </div>
+            <span style={{ fontSize: 'clamp(8px,1.05vw,13px)', lineHeight: 1.6, opacity: 0.9, whiteSpace: 'pre-line' }}>
+              {s.address || '418, 4th Floor, Shivalik Highstreet,\nNear Rajpath Club, Bodakdev,\nAhmedabad - 380054, Gujarat, India'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </SlideShell>
+  );
+}
+
+const SLIDE_PREVIEWS = [
+  Slide1Preview,
+  Slide2Preview,
+  Slide3Preview,
+  Slide4Preview,
+  Slide5Preview,
+  SlideSiteVisibilityPreview,
+  Slide6Preview,
+  SlideFirstFloorPlanPreview,
+  Slide7Preview,
+  Slide8Preview,
+  Slide9Preview,
+  SlideNearbyCommercialPreview,
+  Slide10Preview,
+  Slide11Preview,
+  SlideContactPreview,
+];
 
 // ─────────────────────── FORM FIELD HELPERS ─────────────────────────────────
 
@@ -1185,18 +1469,249 @@ function Step11Form() {
   );
 }
 
+function StepSiteVisibilityForm() {
+  const { data: { slideSiteVisibility: s }, updateSlideSiteVisibility } = useFormData();
+  const u = (k: any, v: any) => updateSlideSiteVisibility({ [k]: v });
+
+  return (
+    <div>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header Text</div>
+        <Field label="Slide Number">
+          <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="06" />
+        </Field>
+        <Field label="Title">
+          <input style={inputStyle} value={s.title} onChange={e => u('title', e.target.value)} placeholder="SITE VISIBILITY" />
+        </Field>
+        <Field label="Subtitle">
+          <input style={inputStyle} value={s.subtitle} onChange={e => u('subtitle', e.target.value)} placeholder="EXCELLENT FRONTAGE & ACCESS" />
+        </Field>
+      </div>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Site Visibility Photos</div>
+        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 12 }}>Upload 3 photos for Left View, Front View, and Right View (shown in that order)</p>
+        <Field label="Left View Photo">
+          <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('leftViewImage', e.target.files[0])} />
+          {s.leftViewImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.leftViewImage.name}</span>}
+        </Field>
+        <Field label="Front View Photo">
+          <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('frontViewImage', e.target.files[0])} />
+          {s.frontViewImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.frontViewImage.name}</span>}
+        </Field>
+        <Field label="Right View Photo">
+          <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('rightViewImage', e.target.files[0])} />
+          {s.rightViewImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.rightViewImage.name}</span>}
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+function StepFirstFloorPlanForm() {
+  const { data: { slideFirstFloorPlan: s }, updateSlideFirstFloorPlan } = useFormData();
+  const u = (k: any, v: any) => updateSlideFirstFloorPlan({ [k]: v });
+
+  return (
+    <div>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label="Slide Number">
+            <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="08" />
+          </Field>
+          <Field label="Title">
+            <input style={inputStyle} value={s.title} onChange={e => u('title', e.target.value)} placeholder="FIRST FLOOR PLAN" />
+          </Field>
+        </div>
+        <Field label="Subtitle">
+          <input style={inputStyle} value={s.subtitle} onChange={e => u('subtitle', e.target.value)} placeholder="RETAIL SPACES" />
+        </Field>
+      </div>
+
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Floor Plan Features</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label="Feature 1 Title">
+            <input style={inputStyle} value={s.feature1Title} onChange={e => u('feature1Title', e.target.value)} placeholder="Floor Height" />
+          </Field>
+          <Field label="Feature 1 Description">
+            <input style={inputStyle} value={s.feature1Desc} onChange={e => u('feature1Desc', e.target.value)} placeholder={'10\'5"'} />
+          </Field>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+          <Field label="Feature 2 Title">
+            <input style={inputStyle} value={s.feature2Title} onChange={e => u('feature2Title', e.target.value)} placeholder="Frontage" />
+          </Field>
+          <Field label="Feature 2 Description">
+            <input style={inputStyle} value={s.feature2Desc} onChange={e => u('feature2Desc', e.target.value)} placeholder="18' to 28'" />
+          </Field>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+          <Field label="Feature 3 Title">
+            <input style={inputStyle} value={s.feature3Title} onChange={e => u('feature3Title', e.target.value)} placeholder="Parking" />
+          </Field>
+          <Field label="Feature 3 Description">
+            <input style={inputStyle} value={s.feature3Desc} onChange={e => u('feature3Desc', e.target.value)} placeholder="Ample" />
+          </Field>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+          <Field label="Feature 4 Title">
+            <input style={inputStyle} value={s.feature4Title} onChange={e => u('feature4Title', e.target.value)} placeholder="Escalator & Lift" />
+          </Field>
+          <Field label="Feature 4 Description">
+            <input style={inputStyle} value={s.feature4Desc} onChange={e => u('feature4Desc', e.target.value)} placeholder="For Easy Access" />
+          </Field>
+        </div>
+      </div>
+
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Floor Plan Layout</div>
+        <Field label="Upload Floor Plan Image">
+          <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('floorPlanImage', e.target.files[0])} />
+          {s.floorPlanImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.floorPlanImage.name}</span>}
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+function StepNearbyCommercialForm() {
+  const { data: { slideNearbyCommercial: s }, updateSlideNearbyCommercial } = useFormData();
+  const u = (k: any, v: any) => updateSlideNearbyCommercial({ [k]: v });
+
+  const bInputs = [
+    { num: 1, nameK: 'building1Name', distK: 'building1Distance', imgK: 'building1Image', defName: 'THE WHITE CROW', defDist: '150 M' },
+    { num: 2, nameK: 'building2Name', distK: 'building2Distance', imgK: 'building2Image', defName: 'STELLAR', defDist: '200 M' },
+    { num: 3, nameK: 'building3Name', distK: 'building3Distance', imgK: 'building3Image', defName: 'TWIN LILAC', defDist: '500 M' },
+    { num: 4, nameK: 'building4Name', distK: 'building4Distance', imgK: 'building4Image', defName: 'NOVA', defDist: '450 M' },
+    { num: 5, nameK: 'building5Name', distK: 'building5Distance', imgK: 'building5Image', defName: 'ARISTA', defDist: '500 M' },
+    { num: 6, nameK: 'building6Name', distK: 'building6Distance', imgK: 'building6Image', defName: 'DOM ETERNUS', defDist: '700 M' },
+    { num: 7, nameK: 'building7Name', distK: 'building7Distance', imgK: 'building7Image', defName: 'PALLADIUM', defDist: '900 M' },
+    { num: 8, nameK: 'building8Name', distK: 'building8Distance', imgK: 'building8Image', defName: 'PENTAGON', defDist: '1.2 KM' },
+  ];
+
+  return (
+    <div>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label="Slide Number">
+            <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="12" />
+          </Field>
+          <Field label="Title">
+            <input style={inputStyle} value={s.title} onChange={e => u('title', e.target.value)} placeholder="NEARBY COMMERCIAL" />
+          </Field>
+        </div>
+        <Field label="Subtitle">
+          <input style={inputStyle} value={s.subtitle} onChange={e => u('subtitle', e.target.value)} placeholder="ECOSYSTEM" />
+        </Field>
+      </div>
+
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nearby Buildings</div>
+        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 12 }}>Enter building names, distances, and upload photos for each building</p>
+        
+        {bInputs.map((bi) => (
+          <div key={bi.num} style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: 12, marginBottom: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
+              <Field label={`Building ${bi.num} Name`}>
+                <input style={inputStyle} value={(s as any)[bi.nameK]} onChange={e => u(bi.nameK, e.target.value)} placeholder={bi.defName} />
+              </Field>
+              <Field label={`Building ${bi.num} Distance`}>
+                <input style={inputStyle} value={(s as any)[bi.distK]} onChange={e => u(bi.distK, e.target.value)} placeholder={bi.defDist} />
+              </Field>
+            </div>
+            <Field label={`Building ${bi.num} Photo`}>
+              <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u(bi.imgK, e.target.files[0])} />
+              {(s as any)[bi.imgK] && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {(s as any)[bi.imgK].name}</span>}
+            </Field>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ecosystem Background Photo</div>
+        <Field label="Upload Background Photo (Optional)">
+          <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('ecosystemImage', e.target.files[0])} />
+          {s.ecosystemImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.ecosystemImage.name}</span>}
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+function StepContactForm() {
+  const { data: { slideContact: s }, updateSlideContact } = useFormData();
+  const u = (k: any, v: any) => updateSlideContact({ [k]: v });
+
+  return (
+    <div>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header</div>
+        <Field label="Slide Number">
+          <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="15" />
+        </Field>
+        <Field label="Main Heading">
+          <textarea style={{ ...textareaStyle, minHeight: 60 }} value={s.heading} onChange={e => u('heading', e.target.value)} placeholder="LET'S BUILD SOMETHING ICONIC TOGETHER" />
+        </Field>
+      </div>
+
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Company Information</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label="Company Name">
+            <input style={inputStyle} value={s.companyName} onChange={e => u('companyName', e.target.value)} placeholder="AESTHETIC ARC" />
+          </Field>
+          <Field label="Company Tagline">
+            <input style={inputStyle} value={s.companyTagline} onChange={e => u('companyTagline', e.target.value)} placeholder="PROPERTY LEASING COMPANY" />
+          </Field>
+        </div>
+        <Field label="Company Logo">
+          <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('companyLogo', e.target.files[0])} />
+          {s.companyLogo && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.companyLogo.name}</span>}
+        </Field>
+      </div>
+
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Details</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label="Phone Number 1">
+            <input style={inputStyle} value={s.phone1} onChange={e => u('phone1', e.target.value)} placeholder="+91 97129 06363" />
+          </Field>
+          <Field label="Phone Number 2">
+            <input style={inputStyle} value={s.phone2} onChange={e => u('phone2', e.target.value)} placeholder="+91 97129 06364" />
+          </Field>
+        </div>
+        <Field label="Email">
+          <input style={inputStyle} value={s.email} onChange={e => u('email', e.target.value)} placeholder="info@aestheticarc.com" />
+        </Field>
+        <Field label="Website">
+          <input style={inputStyle} value={s.website} onChange={e => u('website', e.target.value)} placeholder="www.aestheticarc.com" />
+        </Field>
+        <Field label="Address">
+          <textarea style={{ ...textareaStyle, minHeight: 80 }} value={s.address} onChange={e => u('address', e.target.value)} placeholder="418, 4th Floor, Shivalik Highstreet, Near Rajpath Club, Bodakdev, Ahmedabad - 380054, Gujarat, India" />
+        </Field>
+      </div>
+    </div>
+  );
+}
+
 const STEPS = [
   { num: 1, title: 'Cover Slide', subtitle: 'Title, company & theme', form: Step1Form },
   { num: 2, title: 'City At A Glance', subtitle: 'Stats & infrastructure', form: Step2Form },
   { num: 3, title: 'Premium Location', subtitle: 'Map & location points', form: Step3Form },
   { num: 4, title: 'Project Showcase', subtitle: 'Features & possession', form: Step4Form },
   { num: 5, title: 'Construction', subtitle: 'Progress & status', form: Step5Form },
-  { num: 6, title: 'Floor Plan 1', subtitle: 'Ground layout & features', form: Step6Form },
-  { num: 7, title: 'Floor Plan 2', subtitle: 'Second layout & features', form: Step7Form },
-  { num: 8, title: 'Brand Map', subtitle: 'Company of the best', form: Step8Form },
-  { num: 9, title: 'Lifestyle Grid', subtitle: 'Everything nearby', form: Step9Form },
-  { num: 10, title: 'Specifications', subtitle: 'Property specs & details', form: Step10Form },
-  { num: 11, title: 'Why Invest', subtitle: 'Key investment highlights', form: Step11Form },
+  { num: 6, title: 'Site Visibility', subtitle: 'Frontage photos & angles', form: StepSiteVisibilityForm },
+  { num: 7, title: 'Floor Plan (Ground)', subtitle: 'Ground layout & features', form: Step6Form },
+  { num: 8, title: 'Floor Plan (First)', subtitle: 'First layout & features', form: StepFirstFloorPlanForm },
+  { num: 9, title: 'Floor Plan (Second)', subtitle: 'Second layout & features', form: Step7Form },
+  { num: 10, title: 'Brand Map', subtitle: 'Company of the best', form: Step8Form },
+  { num: 11, title: 'Lifestyle Grid', subtitle: 'Everything nearby', form: Step9Form },
+  { num: 12, title: 'Nearby Ecosystem', subtitle: 'Commercial surroundings', form: StepNearbyCommercialForm },
+  { num: 13, title: 'Specifications', subtitle: 'Property specs & details', form: Step10Form },
+  { num: 14, title: 'Why Invest', subtitle: 'Key investment highlights', form: Step11Form },
+  { num: 15, title: 'Contact Details', subtitle: "Let's build together", form: StepContactForm },
 ];
 
 // ─────────────────────── MAIN STEPPER APP ────────────────────────────────────
@@ -1761,7 +2276,76 @@ export default function StepperApp() {
         x: 7.5, y: 6.15, w: 2, h: 0.45, fontSize: 15, bold: true, color: 'FFFFFF', align: 'center',
       });
 
-      // ==================== SLIDE 6: GROUND FLOOR PLAN ====================
+      // ==================== SLIDE 6: SITE VISIBILITY ====================
+      const slideSiteVisibility = pptx.addSlide();
+      slideSiteVisibility.background = { color: 'FFFFFF' };
+
+      // Header
+      slideSiteVisibility.addText(data.slideSiteVisibility.slideNumber || '06', {
+        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
+        color: 'FFFFFF', fill: { color: '3d1a6e' },
+        align: 'center', valign: 'middle',
+      });
+
+      slideSiteVisibility.addText(data.slideSiteVisibility.title || 'SITE VISIBILITY', {
+        x: 1.15, y: 0.9, w: 5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+      });
+      slideSiteVisibility.addText(data.slideSiteVisibility.subtitle || 'EXCELLENT FRONTAGE & ACCESS', {
+        x: 1.15, y: 1.45, w: 5, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
+      });
+
+      const visibilityImages = [
+        { label: 'LEFT VIEW', image: data.slideSiteVisibility.leftViewImage, defaultUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop' },
+        { label: 'FRONT VIEW', image: data.slideSiteVisibility.frontViewImage, defaultUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop' },
+        { label: 'RIGHT VIEW', image: data.slideSiteVisibility.rightViewImage, defaultUrl: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=800&auto=format&fit=crop' },
+      ];
+
+      const visW = 2.8;
+      const visGap = 0.2;
+      const visStartX = (10 - (3 * visW + 2 * visGap)) / 2;
+
+      for (let i = 0; i < 3; i++) {
+        const item = visibilityImages[i];
+        const xPos = visStartX + i * (visW + visGap);
+        const yPos = 2.6;
+
+        const visImgData = await getImageBase64(item.image, item.defaultUrl);
+
+        if (visImgData) {
+          slideSiteVisibility.addImage({
+            data: visImgData,
+            x: xPos, y: yPos, w: visW, h: 2.1,
+            sizing: { type: 'cover', w: visW, h: 2.1 }
+          });
+        } else {
+          slideSiteVisibility.addShape(pptx.ShapeType.rect, {
+            x: xPos, y: yPos, w: visW, h: 2.1,
+            fill: { color: 'e5e7eb' },
+            line: { type: 'none' }
+          });
+        }
+
+        // Label box underneath
+        slideSiteVisibility.addShape(pptx.ShapeType.rect, {
+          x: xPos, y: yPos + 2.1, w: visW, h: 0.5,
+          fill: { color: '3d1a6e' },
+          line: { type: 'none' }
+        });
+        slideSiteVisibility.addText(item.label, {
+          x: xPos, y: yPos + 2.1, w: visW, h: 0.5,
+          fontSize: 10, bold: true, color: 'FFFFFF',
+          align: 'center', valign: 'middle',
+        });
+        
+        // Orange accent line below label
+        slideSiteVisibility.addShape(pptx.ShapeType.rect, {
+          x: xPos + 0.5, y: yPos + 2.7, w: visW - 1.0, h: 0.04,
+          fill: { color: '3d1a6e' },
+          line: { type: 'none' }
+        });
+      }
+
+      // ==================== SLIDE 7: GROUND FLOOR PLAN ====================
       const slide6 = pptx.addSlide();
       slide6.background = { color: 'FFFFFF' };
       
@@ -1829,6 +2413,78 @@ export default function StepperApp() {
           x: 0.95, y: yPos - 0.05, w: 3.5, h: 0.25, fontSize: 10, color: '6b7280',
         });
         slide6.addText(feat.val, {
+          x: 0.95, y: yPos + 0.2, w: 3.5, h: 0.4, fontSize: 13, bold: true, color: '3d1a6e',
+        });
+      });
+
+      // ==================== SLIDE 8: FIRST FLOOR PLAN ====================
+      const slideFirstFloorPlan = pptx.addSlide();
+      slideFirstFloorPlan.background = { color: 'FFFFFF' };
+
+      // Plan image on right
+      const floorPlanImageData = await getImageBase64(
+        data.slideFirstFloorPlan.floorPlanImage,
+        'https://images.unsplash.com/photo-1598928506311-c55dd1b4eb64?q=80&w=800&auto=format&fit=crop'
+      );
+
+      if (floorPlanImageData) {
+        slideFirstFloorPlan.addImage({
+          data: floorPlanImageData,
+          x: 4.5, y: 0, w: 5.5, h: 7.5,
+          sizing: { type: 'cover', w: 5.5, h: 7.5 },
+        });
+        slideFirstFloorPlan.addShape(pptx.ShapeType.rect, {
+          x: 4.5, y: 0, w: 1.8, h: 7.5,
+          fill: { color: 'FFFFFF', transparency: 30 },
+          line: { type: 'none' }
+        });
+      } else {
+        slideFirstFloorPlan.addShape(pptx.ShapeType.rect, {
+          x: 4.5, y: 0, w: 5.5, h: 7.5,
+          fill: { color: 'e5e7eb' },
+          line: { type: 'none' }
+        });
+      }
+
+      // Header
+      slideFirstFloorPlan.addText(data.slideFirstFloorPlan.slideNumber || '08', {
+        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
+        color: 'FFFFFF', fill: { color: '3d1a6e' },
+        align: 'center', valign: 'middle',
+      });
+
+      slideFirstFloorPlan.addText(data.slideFirstFloorPlan.title || 'FIRST FLOOR PLAN', {
+        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+      });
+      slideFirstFloorPlan.addText(data.slideFirstFloorPlan.subtitle || 'RETAIL SPACES', {
+        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
+      });
+
+      const firstFloorPlanFeatures = [
+        { label: data.slideFirstFloorPlan.feature1Title || 'Floor Height', val: data.slideFirstFloorPlan.feature1Desc || '10\'5"', icon: '📏' },
+        { label: data.slideFirstFloorPlan.feature2Title || 'Frontage', val: data.slideFirstFloorPlan.feature2Desc || '18\' to 28\'', icon: '📐' },
+        { label: data.slideFirstFloorPlan.feature3Title || 'Parking', val: data.slideFirstFloorPlan.feature3Desc || 'Ample', icon: '🅿️' },
+        { label: data.slideFirstFloorPlan.feature4Title || 'Escalator & Lift', val: data.slideFirstFloorPlan.feature4Desc || 'For Easy Access', icon: '🛗' },
+      ];
+
+      firstFloorPlanFeatures.forEach((feat, i) => {
+        const yPos = 2.4 + (i * 1.1);
+        // Orange bordered icon box
+        slideFirstFloorPlan.addShape(pptx.ShapeType.rect, {
+          x: 0.5, y: yPos, w: 0.35, h: 0.35,
+          fill: { color: 'FFFFFF' },
+          line: { color: 'f97316', width: 1.5 },
+          rectRadius: 0.05,
+        });
+        // Icon emoji inside the box
+        slideFirstFloorPlan.addText(feat.icon, {
+          x: 0.5, y: yPos, w: 0.35, h: 0.35, fontSize: 12,
+          align: 'center', valign: 'middle',
+        });
+        slideFirstFloorPlan.addText(feat.label, {
+          x: 0.95, y: yPos - 0.05, w: 3.5, h: 0.25, fontSize: 10, color: '6b7280',
+        });
+        slideFirstFloorPlan.addText(feat.val, {
           x: 0.95, y: yPos + 0.2, w: 3.5, h: 0.4, fontSize: 13, bold: true, color: '3d1a6e',
         });
       });
@@ -2028,6 +2684,120 @@ export default function StepperApp() {
         });
       }
 
+      // ==================== SLIDE 12: NEARBY COMMERCIAL ECOSYSTEM ====================
+      const slideNearbyCommercial = pptx.addSlide();
+      slideNearbyCommercial.background = { color: 'FFFFFF' };
+
+      const ecosystemImageData = await getImageBase64(
+        data.slideNearbyCommercial.ecosystemImage,
+        'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
+      );
+
+      if (ecosystemImageData) {
+        slideNearbyCommercial.addImage({
+          data: ecosystemImageData,
+          x: 0, y: 0, w: 10, h: 7.5,
+          sizing: { type: 'cover', w: 10, h: 7.5 },
+          transparency: 80,
+        });
+      }
+
+      // Header
+      slideNearbyCommercial.addText(data.slideNearbyCommercial.slideNumber || '12', {
+        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
+        color: 'FFFFFF', fill: { color: '3d1a6e' },
+        align: 'center', valign: 'middle',
+      });
+
+      slideNearbyCommercial.addText(data.slideNearbyCommercial.title || 'NEARBY COMMERCIAL', {
+        x: 1.15, y: 0.9, w: 8, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+      });
+      slideNearbyCommercial.addText(data.slideNearbyCommercial.subtitle || 'ECOSYSTEM', {
+        x: 1.15, y: 1.45, w: 8, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
+      });
+
+      const buildings = [
+        { name: data.slideNearbyCommercial.building1Name || 'THE WHITE CROW', distance: data.slideNearbyCommercial.building1Distance || '150 M', image: data.slideNearbyCommercial.building1Image },
+        { name: data.slideNearbyCommercial.building2Name || 'STELLAR', distance: data.slideNearbyCommercial.building2Distance || '200 M', image: data.slideNearbyCommercial.building2Image },
+        { name: data.slideNearbyCommercial.building3Name || 'TWIN LILAC', distance: data.slideNearbyCommercial.building3Distance || '500 M', image: data.slideNearbyCommercial.building3Image },
+        { name: data.slideNearbyCommercial.building4Name || 'NOVA', distance: data.slideNearbyCommercial.building4Distance || '450 M', image: data.slideNearbyCommercial.building4Image },
+        { name: data.slideNearbyCommercial.building5Name || 'ARISTA', distance: data.slideNearbyCommercial.building5Distance || '500 M', image: data.slideNearbyCommercial.building5Image },
+        { name: data.slideNearbyCommercial.building6Name || 'DOM ETERNUS', distance: data.slideNearbyCommercial.building6Distance || '700 M', image: data.slideNearbyCommercial.building6Image },
+        { name: data.slideNearbyCommercial.building7Name || 'PALLADIUM', distance: data.slideNearbyCommercial.building7Distance || '900 M', image: data.slideNearbyCommercial.building7Image },
+        { name: data.slideNearbyCommercial.building8Name || 'PENTAGON', distance: data.slideNearbyCommercial.building8Distance || '1.2 KM', image: data.slideNearbyCommercial.building8Image },
+      ];
+
+      // Draw 2 rows x 4 columns of buildings
+      const gridW = 2.1;
+      const gridH = 1.8;
+      const gridGapX = 0.2;
+      const gridGapY = 0.25;
+      const gridStartX = (10 - (4 * gridW + 3 * gridGapX)) / 2;
+
+      for (let i = 0; i < 8; i++) {
+        const b = buildings[i];
+        const colIndex = i % 4;
+        const rowIndex = Math.floor(i / 4);
+        const xPos = gridStartX + colIndex * (gridW + gridGapX);
+        const yPos = 2.6 + rowIndex * (gridH + gridGapY);
+
+        const bImgData = await getImageBase64(
+          b.image,
+          'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop'
+        );
+
+        // Background card shape
+        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
+          x: xPos, y: yPos, w: gridW, h: gridH,
+          fill: { color: 'FFFFFF' },
+          line: { color: 'e5e7eb', width: 1 },
+          rectRadius: 0.08,
+        });
+
+        // Building photo frame
+        if (bImgData) {
+          slideNearbyCommercial.addImage({
+            data: bImgData,
+            x: xPos, y: yPos, w: gridW, h: 1.1,
+            sizing: { type: 'cover', w: gridW, h: 1.1 },
+          });
+        } else {
+          slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
+            x: xPos, y: yPos, w: gridW, h: 1.1,
+            fill: { color: '3d1a6e' },
+            line: { type: 'none' },
+          });
+          slideNearbyCommercial.addText('🏢', {
+            x: xPos, y: yPos + 0.2, w: gridW, h: 0.6,
+            fontSize: 24, align: 'center', valign: 'middle',
+          });
+        }
+
+        // Overlay building name at the bottom of the photo frame
+        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
+          x: xPos, y: yPos + 0.85, w: gridW, h: 0.25,
+          fill: { color: '3d1a6e', transparency: 10 },
+          line: { type: 'none' }
+        });
+        slideNearbyCommercial.addText(b.name.toUpperCase(), {
+          x: xPos, y: yPos + 0.85, w: gridW, h: 0.25,
+          fontSize: 7, bold: true, color: 'FFFFFF',
+          align: 'center', valign: 'middle',
+        });
+
+        // Distance text box
+        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
+          x: xPos, y: yPos + 1.1, w: gridW, h: 0.7,
+          fill: { color: 'FFFFFF' },
+          line: { color: 'f97316', width: 1.5 }
+        });
+        slideNearbyCommercial.addText(b.distance, {
+          x: xPos, y: yPos + 1.1, w: gridW, h: 0.7,
+          fontSize: 12, bold: true, color: '3d1a6e',
+          align: 'center', valign: 'middle',
+        });
+      }
+
       // ==================== SLIDE 10: PROPERTY SPECIFICATIONS ====================
       const slide10 = pptx.addSlide();
       slide10.background = { color: 'FFFFFF' };
@@ -2203,7 +2973,103 @@ export default function StepperApp() {
         });
       });
 
-      // ==================== SLIDE 12: THANK YOU ====================
+      // ==================== SLIDE 15: CONTACT DETAILS ====================
+      const slideContact = pptx.addSlide();
+      slideContact.background = { color: '1a0a2e' };
+
+      // Background decorative icon watermark
+      slideContact.addText('🏢', {
+        x: 3.5, y: 1.7, w: 3, h: 3,
+        fontSize: 180, align: 'center', valign: 'middle',
+        color: 'FFFFFF', transparency: 95,
+      });
+
+      // Top Left: Slide number badge
+      slideContact.addText(data.slideContact.slideNumber || '15', {
+        x: 0.5, y: 0.8, w: 0.6, h: 0.6, fontSize: 14, bold: true,
+        color: 'FFFFFF', fill: { color: '3d1a6e' },
+        align: 'center', valign: 'middle',
+        rectRadius: 0.1,
+      });
+
+      // Main heading
+      slideContact.addText((data.slideContact.heading || "LET'S BUILD\nSOMETHING ICONIC\nTOGETHER").toUpperCase(), {
+        x: 0.5, y: 1.8, w: 4.8, h: 2.5, fontSize: 34, bold: true,
+        color: 'FFFFFF', fontFace: 'Arial', lineSpacing: 1.1,
+      });
+
+      // Company info
+      const companyLogoData = await getImageBase64(data.slideContact.companyLogo, '');
+      if (companyLogoData) {
+        slideContact.addImage({
+          data: companyLogoData,
+          x: 0.5, y: 5.2, w: 0.6, h: 0.6,
+          sizing: { type: 'cover', w: 0.6, h: 0.6 }
+        });
+      } else {
+        slideContact.addShape(pptx.ShapeType.rect, {
+          x: 0.5, y: 5.2, w: 0.6, h: 0.6,
+          fill: { color: 'f97316' },
+          line: { type: 'none' },
+          rectRadius: 0.08,
+        });
+        slideContact.addText('A', {
+          x: 0.5, y: 5.2, w: 0.6, h: 0.6, fontSize: 20, bold: true,
+          color: 'FFFFFF', align: 'center', valign: 'middle',
+        });
+      }
+
+      slideContact.addText(data.slideContact.companyName || 'AESTHETIC ARC', {
+        x: 1.25, y: 5.2, w: 3.5, h: 0.3, fontSize: 14, bold: true, color: 'FFFFFF',
+      });
+      slideContact.addText(data.slideContact.companyTagline || 'PROPERTY LEASING COMPANY', {
+        x: 1.25, y: 5.5, w: 3.5, h: 0.3, fontSize: 8, color: 'FFFFFF', transparency: 30,
+      });
+
+      // Contact details
+      const cX = 5.6;
+      slideContact.addText('GET IN TOUCH', {
+        x: cX, y: 1.0, w: 3.8, h: 0.3, fontSize: 10, bold: true,
+        color: 'FFFFFF', letterSpacing: 1, transparency: 20,
+      });
+
+      const contactItems = [
+        { icon: '📞', text1: data.slideContact.phone1 || '+91 97129 06363', text2: data.slideContact.phone2 || '+91 97129 06364' },
+        { icon: '✉️', text1: data.slideContact.email || 'info@aestheticarc.com' },
+        { icon: '🌐', text1: data.slideContact.website || 'www.aestheticarc.com' },
+        { icon: '📍', text1: data.slideContact.address || '418, 4th Floor, Shivalik Highstreet,\nNear Rajpath Club, Bodakdev,\nAhmedabad - 380054, Gujarat, India' },
+      ];
+
+      contactItems.forEach((item, i) => {
+        const yPos = 1.6 + i * 1.25;
+        // Circular border box around emoji icon
+        slideContact.addShape(pptx.ShapeType.ellipse, {
+          x: cX, y: yPos, w: 0.35, h: 0.35,
+          fill: { type: 'none' },
+          line: { color: 'FFFFFF', width: 1.5, transparency: 70 },
+        });
+        slideContact.addText(item.icon, {
+          x: cX, y: yPos, w: 0.35, h: 0.35, fontSize: 10,
+          align: 'center', valign: 'middle',
+        });
+
+        // Contact info text
+        if (item.text2) {
+          slideContact.addText(item.text1, {
+            x: cX + 0.5, y: yPos - 0.1, w: 3.3, h: 0.25, fontSize: 10, color: 'FFFFFF',
+          });
+          slideContact.addText(item.text2, {
+            x: cX + 0.5, y: yPos + 0.15, w: 3.3, h: 0.25, fontSize: 10, color: 'FFFFFF',
+          });
+        } else {
+          slideContact.addText(item.text1, {
+            x: cX + 0.5, y: yPos - 0.05, w: 3.3, h: 0.8, fontSize: 10, color: 'FFFFFF',
+            valign: 'middle',
+          });
+        }
+      });
+
+      // ==================== SLIDE 16: THANK YOU ====================
       const slide12 = pptx.addSlide();
       slide12.background = { color: '1f2937' };
       

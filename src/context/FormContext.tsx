@@ -158,6 +158,76 @@ export interface Slide11Data {
   card7Label: string;
 }
 
+// ─────────────────────── MAIN REMOTE SLIDES DATA ──────────────────────────────
+
+export interface SlideSiteVisibilityData {
+  slideNumber: string;
+  title: string;
+  subtitle: string;
+  leftViewImage: File | null;
+  frontViewImage: File | null;
+  rightViewImage: File | null;
+}
+
+export interface SlideFirstFloorPlanData {
+  slideNumber: string;
+  title: string;
+  subtitle: string;
+  feature1Title: string;
+  feature1Desc: string;
+  feature2Title: string;
+  feature2Desc: string;
+  feature3Title: string;
+  feature3Desc: string;
+  feature4Title: string;
+  feature4Desc: string;
+  floorPlanImage: File | null;
+}
+
+export interface SlideNearbyCommercialData {
+  slideNumber: string;
+  title: string;
+  subtitle: string;
+  building1Name: string;
+  building1Distance: string;
+  building1Image: File | null;
+  building2Name: string;
+  building2Distance: string;
+  building2Image: File | null;
+  building3Name: string;
+  building3Distance: string;
+  building3Image: File | null;
+  building4Name: string;
+  building4Distance: string;
+  building4Image: File | null;
+  building5Name: string;
+  building5Distance: string;
+  building5Image: File | null;
+  building6Name: string;
+  building6Distance: string;
+  building6Image: File | null;
+  building7Name: string;
+  building7Distance: string;
+  building7Image: File | null;
+  building8Name: string;
+  building8Distance: string;
+  building8Image: File | null;
+  ecosystemImage: File | null;
+}
+
+export interface SlideContactData {
+  slideNumber: string;
+  heading: string;
+  companyName: string;
+  companyTagline: string;
+  phone1: string;
+  phone2: string;
+  email: string;
+  website: string;
+  address: string;
+  companyLogo: File | null;
+}
+
 export interface AllSlides {
   slide1: Slide1Data;
   slide2: Slide2Data;
@@ -170,6 +240,10 @@ export interface AllSlides {
   slide9: Slide9Data;
   slide10: Slide10Data;
   slide11: Slide11Data;
+  slideSiteVisibility: SlideSiteVisibilityData;
+  slideFirstFloorPlan: SlideFirstFloorPlanData;
+  slideNearbyCommercial: SlideNearbyCommercialData;
+  slideContact: SlideContactData;
 }
 
 interface FormContextType {
@@ -185,6 +259,10 @@ interface FormContextType {
   updateSlide9: (d: Partial<Slide9Data>) => void;
   updateSlide10: (d: Partial<Slide10Data>) => void;
   updateSlide11: (d: Partial<Slide11Data>) => void;
+  updateSlideSiteVisibility: (d: Partial<SlideSiteVisibilityData>) => void;
+  updateSlideFirstFloorPlan: (d: Partial<SlideFirstFloorPlanData>) => void;
+  updateSlideNearbyCommercial: (d: Partial<SlideNearbyCommercialData>) => void;
+  updateSlideContact: (d: Partial<SlideContactData>) => void;
 }
 
 const initial: AllSlides = {
@@ -249,7 +327,7 @@ const initial: AllSlides = {
     constructionImage: null,
   },
   slide6: {
-    slideNumber: '06',
+    slideNumber: '07',
     title: 'GROUND FLOOR PLAN',
     subtitle: 'RETAIL SPACES',
     floorHeightLabel: 'Floor Height',
@@ -263,7 +341,7 @@ const initial: AllSlides = {
     planImage: null,
   },
   slide7: {
-    slideNumber: '07',
+    slideNumber: '09',
     title: 'SECOND FLOOR PLAN',
     subtitle: 'RETAIL SPACES',
     floorHeightLabel: 'Floor Height',
@@ -277,14 +355,14 @@ const initial: AllSlides = {
     planImage: null,
   },
   slide8: {
-    slideNumber: '08',
+    slideNumber: '10',
     title: 'BRAND LOCATION MAP',
     subtitle: 'BE IN THE COMPANY OF THE BEST',
     brandList: 'FASHION & APPAREL\nJEWELLERY\nFOOD & BEVERAGE\nLIFESTYLE & OTHERS\nCORPORATE OFFICES\nSHOPPING DESTINATIONS',
     mapImage: null,
   },
   slide9: {
-    slideNumber: '09',
+    slideNumber: '11',
     title: 'LIFESTYLE AROUND YOU',
     subtitle: 'EVERYTHING NEARBY',
     label1: 'FINE DINING',
@@ -299,7 +377,7 @@ const initial: AllSlides = {
     img5: null,
   },
   slide10: {
-    slideNumber: '10',
+    slideNumber: '13',
     title: 'PROPERTY SPECIFICATIONS',
     spec1Label: 'Project Type',
     spec1Value: 'Commercial',
@@ -325,7 +403,7 @@ const initial: AllSlides = {
     qrImage: null,
   },
   slide11: {
-    slideNumber: '11',
+    slideNumber: '14',
     title: 'WHY INVEST IN\nMADHAV HIGHSTREET?',
     card1Label: 'Prime Location\nHigh Visibility',
     card2Label: 'Surrounded by\nPremium Brands',
@@ -334,6 +412,70 @@ const initial: AllSlides = {
     card5Label: 'Excellent\nConnectivity & Access',
     card6Label: 'Strong Investment\n& Returns',
     card7Label: 'Strong Investment\nPotential',
+  },
+  slideSiteVisibility: {
+    slideNumber: '06',
+    title: 'SITE VISIBILITY',
+    subtitle: 'EXCELLENT FRONTAGE & ACCESS',
+    leftViewImage: null,
+    frontViewImage: null,
+    rightViewImage: null,
+  },
+  slideFirstFloorPlan: {
+    slideNumber: '08',
+    title: 'FIRST FLOOR PLAN',
+    subtitle: 'RETAIL SPACES',
+    feature1Title: 'Floor Height',
+    feature1Desc: '10\'5"',
+    feature2Title: 'Frontage',
+    feature2Desc: '18\' to 28\'',
+    feature3Title: 'Parking',
+    feature3Desc: 'Ample',
+    feature4Title: 'Escalator & Lift',
+    feature4Desc: 'For Easy Access',
+    floorPlanImage: null,
+  },
+  slideNearbyCommercial: {
+    slideNumber: '12',
+    title: 'NEARBY COMMERCIAL',
+    subtitle: 'ECOSYSTEM',
+    building1Name: 'THE WHITE CROW',
+    building1Distance: '150 M',
+    building1Image: null,
+    building2Name: 'STELLAR',
+    building2Distance: '200 M',
+    building2Image: null,
+    building3Name: 'TWIN LILAC',
+    building3Distance: '500 M',
+    building3Image: null,
+    building4Name: 'NOVA',
+    building4Distance: '450 M',
+    building4Image: null,
+    building5Name: 'ARISTA',
+    building5Distance: '500 M',
+    building5Image: null,
+    building6Name: 'DOM ETERNUS',
+    building6Distance: '700 M',
+    building6Image: null,
+    building7Name: 'PALLADIUM',
+    building7Distance: '900 M',
+    building7Image: null,
+    building8Name: 'PENTAGON',
+    building8Distance: '1.2 KM',
+    building8Image: null,
+    ecosystemImage: null,
+  },
+  slideContact: {
+    slideNumber: '15',
+    heading: "LET'S BUILD SOMETHING ICONIC TOGETHER",
+    companyName: 'AESTHETIC ARC',
+    companyTagline: 'PROPERTY LEASING COMPANY',
+    phone1: '+91 97129 06363',
+    phone2: '+91 97129 06364',
+    email: 'info@aestheticarc.com',
+    website: 'www.aestheticarc.com',
+    address: '418, 4th Floor, Shivalik Highstreet,\nNear Rajpath Club, Bodakdev,\nAhmedabad - 380054, Gujarat, India',
+    companyLogo: null,
   },
 };
 
@@ -364,9 +506,17 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     setData(prev => ({ ...prev, slide10: { ...prev.slide10, ...d } }));
   const updateSlide11 = (d: Partial<Slide11Data>) =>
     setData(prev => ({ ...prev, slide11: { ...prev.slide11, ...d } }));
+  const updateSlideSiteVisibility = (d: Partial<SlideSiteVisibilityData>) =>
+    setData(prev => ({ ...prev, slideSiteVisibility: { ...prev.slideSiteVisibility, ...d } }));
+  const updateSlideFirstFloorPlan = (d: Partial<SlideFirstFloorPlanData>) =>
+    setData(prev => ({ ...prev, slideFirstFloorPlan: { ...prev.slideFirstFloorPlan, ...d } }));
+  const updateSlideNearbyCommercial = (d: Partial<SlideNearbyCommercialData>) =>
+    setData(prev => ({ ...prev, slideNearbyCommercial: { ...prev.slideNearbyCommercial, ...d } }));
+  const updateSlideContact = (d: Partial<SlideContactData>) =>
+    setData(prev => ({ ...prev, slideContact: { ...prev.slideContact, ...d } }));
 
   return (
-    <FormContext.Provider value={{ data, updateSlide1, updateSlide2, updateSlide3, updateSlide4, updateSlide5, updateSlide6, updateSlide7, updateSlide8, updateSlide9, updateSlide10, updateSlide11 }}>
+    <FormContext.Provider value={{ data, updateSlide1, updateSlide2, updateSlide3, updateSlide4, updateSlide5, updateSlide6, updateSlide7, updateSlide8, updateSlide9, updateSlide10, updateSlide11, updateSlideSiteVisibility, updateSlideFirstFloorPlan, updateSlideNearbyCommercial, updateSlideContact }}>
       {children}
     </FormContext.Provider>
   );
