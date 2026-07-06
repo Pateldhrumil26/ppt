@@ -1,0 +1,1303 @@
+import { useState } from 'react';
+import { useFormData } from '../context/FormContext';
+import {
+  Shirt, ShoppingBag, Leaf, Utensils, MonitorSmartphone, ShoppingCart,
+  Building2, HeartPulse, Ticket, Gamepad2, Users, DollarSign, TrendingUp,
+  Landmark, Train, Bus, Plane, ShoppingBasket, MapPin, Route,
+  CheckCircle2, Loader2, Clock, Calendar, Diamond, ChevronRight,
+  ChevronLeft, Download, Eye,
+} from 'lucide-react';
+
+// Import pptxgenjs dynamically
+let PptxGenJS: any = null;
+const loadPptxGenJS = async () => {
+  if (!PptxGenJS) {
+    const module = await import('pptxgenjs');
+    PptxGenJS = module.default;
+  }
+  return PptxGenJS;
+};
+
+// ─────────────────────── SLIDE PREVIEW COMPONENTS ───────────────────────────
+
+const CATEGORIES = [
+  { name: 'Fashion', icon: Shirt },
+  { name: 'Retail', icon: ShoppingBag },
+  { name: 'Lifestyle', icon: Leaf },
+  { name: 'F&B', icon: Utensils },
+  { name: 'Electronics', icon: MonitorSmartphone },
+  { name: 'Hypermarket', icon: ShoppingCart },
+  { name: 'Corporate\nOffices', icon: Building2 },
+  { name: 'Health &\nWellness', icon: HeartPulse },
+  { name: 'Multiplex', icon: Ticket },
+  { name: 'Game Zone', icon: Gamepad2 },
+];
+
+const SlideShell = ({ children }: { children: React.ReactNode }) => (
+  <div style={{
+    width: '100%',
+    aspectRatio: '16/9',
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 10,
+    boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+    fontFamily: 'Inter, Arial, sans-serif',
+  }}>
+    {children}
+  </div>
+);
+
+function Slide1Preview() {
+  const { data: { slide1: s } } = useFormData();
+  const theme = s.themeColor || '#3d1a6e';
+  const fc = s.fontColor || '#FFFFFF';
+  const bgSrc = s.backgroundImage
+    ? URL.createObjectURL(s.backgroundImage)
+    : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
+  const logoSrc = s.logo ? URL.createObjectURL(s.logo) : null;
+
+  return (
+    <SlideShell>
+      <img src={bgSrc} alt="bg" style={{ position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover' }} />
+      <div style={{ position:'absolute',inset:0, background:`linear-gradient(90deg,${theme}f0 0%,${theme}cc 40%,${theme}66 65%,transparent 100%)` }} />
+      <div style={{ position:'absolute',inset:0,display:'flex',flexDirection:'column',justifyContent:'space-between',padding:'4%',color:fc }}>
+        {/* Top */}
+        <div style={{ maxWidth:'50%' }}>
+          <div style={{ display:'inline-block',background:theme,border:`2px solid ${fc}44`,borderRadius:5,padding:'3px 10px',fontWeight:800,fontSize:'clamp(9px,1.4vw,16px)',marginBottom:'3%' }}>
+            {s.slideNumber||'01'}
+          </div>
+          <h1 style={{ fontSize:'clamp(16px,4vw,46px)',fontWeight:900,lineHeight:1,marginBottom:'2%',letterSpacing:'-0.02em',whiteSpace:'pre-line' }}>
+            {s.title||'MADHAV\nHIGHSTREET'}
+          </h1>
+          <p style={{ fontSize:'clamp(7px,1.2vw,14px)',fontWeight:600,opacity:0.85,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'2%',whiteSpace:'pre-line' }}>
+            {s.subtitle||'THE NEXT PREMIUM RETAIL DESTINATION'}
+          </p>
+          <p style={{ fontSize:'clamp(6px,1vw,12px)',opacity:0.7,marginBottom:'3%',whiteSpace:'pre-line' }}>
+            {s.address||'SINDHU BHAVAN ROAD,\nBODAKDEV, AHMEDABAD'}
+          </p>
+          <div style={{ width:'12%',height:2,background:fc,opacity:0.6,marginBottom:'3%' }} />
+          <p style={{ fontSize:'clamp(5px,0.8vw,10px)',opacity:0.55,marginBottom:'1%' }}>Presented by</p>
+          <div style={{ display:'flex',alignItems:'center',gap:8 }}>
+            {logoSrc
+              ? <img src={logoSrc} alt="logo" style={{ width:'clamp(18px,2.5vw,32px)',height:'clamp(18px,2.5vw,32px)',borderRadius:'50%',objectFit:'cover' }} />
+              : <div style={{ width:'clamp(18px,2.5vw,30px)',height:'clamp(18px,2.5vw,30px)',borderRadius:4,background:'#ff6b00',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:'clamp(7px,1vw,12px)',color:'#fff',flexShrink:0 }}>A</div>
+            }
+            <div>
+              <div style={{ fontWeight:800,fontSize:'clamp(7px,1.2vw,15px)' }}>{s.companyName||'AESTHETIC ARC'}</div>
+              <div style={{ fontSize:'clamp(5px,0.75vw,9px)',opacity:0.55 }}>{s.companyTagline||'PROPERTY LEASING COMPANY'}</div>
+            </div>
+          </div>
+        </div>
+        {/* Bottom categories */}
+        <div style={{ display:'grid',gridTemplateColumns:'repeat(10,1fr)',gap:'clamp(2px,0.4vw,5px)' }}>
+          {CATEGORIES.map((c,i)=>{
+            const Icon=c.icon;
+            return (
+              <div key={i} style={{ background:`${fc}18`,border:`1px solid ${fc}2f`,borderRadius:5,padding:'clamp(3px,0.8vw,8px) clamp(1px,0.3vw,4px)',display:'flex',flexDirection:'column',alignItems:'center',gap:'clamp(1px,0.3vw,3px)' }}>
+                <Icon size="clamp(8px,1.8vw,20px)" strokeWidth={1.5} style={{ color:fc }} />
+                <span style={{ fontSize:'clamp(3px,0.6vw,7px)',color:fc,fontWeight:600,textAlign:'center',lineHeight:1.2,whiteSpace:'pre-line' }}>{c.name}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SlideShell>
+  );
+}
+
+function Slide2Preview() {
+  const { data:{ slide2:s } } = useFormData();
+  const hc='#3d1a6e', ac='#f97316';
+  const imgSrc = s.cityImage
+    ? URL.createObjectURL(s.cityImage)
+    : 'https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=2070&auto=format&fit=crop';
+
+  const stats = [
+    { icon:Users, v:s.population||'90.6 Lakh+', l:'Population' },
+    { icon:DollarSign, v:s.gdp||'$135 Billion+', l:'GDP' },
+    { icon:TrendingUp, v:s.gdpGrowth||'6.7%+', l:'GDP Growth' },
+    { icon:Landmark, v:'World\'s 1st', l:s.worldFirst||'Heritage City With BRTS', hi:true },
+    { icon:Train, v:s.metroKm||'40 KM+', l:'Metro Network' },
+    { icon:Bus, v:s.brtsKm||'160 KM+', l:'BRTS Network' },
+    { icon:Plane, v:s.dailyFlights||'130+', l:'Daily Flights' },
+    { icon:ShoppingBasket, v:'Top 3', l:s.retailRank||'Fastest Growing Retail Market', hi:true },
+  ];
+
+  const infraLines = (s.infrastructure||'').split('\n').filter(Boolean);
+  const half = Math.ceil(infraLines.length/2);
+  const col1 = infraLines.slice(0,half);
+  const col2 = infraLines.slice(half);
+
+  return (
+    <SlideShell>
+      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
+      {/* Right image */}
+      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'45%' }}>
+        <img src={imgSrc} alt="city" style={{ width:'100%',height:'100%',objectFit:'cover' }} />
+        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 40%,white 100%)' }} />
+      </div>
+      {/* Left content */}
+      <div style={{ position:'absolute',inset:0,padding:'4%',paddingRight:'50%',display:'flex',flexDirection:'column',justifyContent:'flex-start' }}>
+        {/* Header */}
+        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'3%' }}>
+          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>02</div>
+          <div>
+            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.4vw,28px)',color:hc,lineHeight:1 }}>{s.cityName||'AHMEDABAD'}</div>
+            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.4vw,28px)',color:ac,lineHeight:1 }}>AT A GLANCE</div>
+            <div style={{ fontSize:'clamp(5px,0.85vw,10px)',color:'#555',marginTop:2 }}>A Thriving City. A Growing Opportunity.</div>
+          </div>
+        </div>
+        {/* Stats */}
+        <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'clamp(2px,0.5vw,6px)',marginBottom:'3%' }}>
+          {stats.map((st,i)=>{
+            const Icon=st.icon;
+            return (
+              <div key={i} style={{ border:`1px solid ${(st as any).hi?hc:'#e5e7eb'}`,borderRadius:5,padding:'clamp(3px,0.7vw,8px)',background:(st as any).hi?`${hc}09`:'#fff' }}>
+                <Icon size="clamp(7px,1.2vw,14px)" style={{ color:hc,opacity:0.7 }} strokeWidth={1.5} />
+                <div style={{ fontWeight:800,fontSize:'clamp(7px,1.2vw,14px)',color:hc,lineHeight:1.2,marginTop:2 }}>{st.v}</div>
+                <div style={{ fontSize:'clamp(4px,0.65vw,8px)',color:'#666',lineHeight:1.3 }}>{st.l}</div>
+              </div>
+            );
+          })}
+        </div>
+        {/* Infrastructure */}
+        <div>
+          <div style={{ fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:hc,fontSize:'clamp(5px,0.8vw,10px)',marginBottom:'1%' }}>UPCOMING INFRASTRUCTURE</div>
+          <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1px 12px' }}>
+            {col1.map((t,i)=><div key={`a${i}`} style={{ fontSize:'clamp(4px,0.7vw,8px)',color:'#374151',display:'flex',gap:3,alignItems:'center' }}><span style={{ color:hc,fontWeight:700 }}>•</span>{t}</div>)}
+            {col2.map((t,i)=><div key={`b${i}`} style={{ fontSize:'clamp(4px,0.7vw,8px)',color:'#374151',display:'flex',gap:3,alignItems:'center' }}><span style={{ color:hc,fontWeight:700 }}>•</span>{t}</div>)}
+          </div>
+        </div>
+      </div>
+    </SlideShell>
+  );
+}
+
+function Slide3Preview() {
+  const { data:{ slide3:s } } = useFormData();
+  const hc='#3d1a6e', ac='#f97316';
+  const imgSrc = s.mapImage
+    ? URL.createObjectURL(s.mapImage)
+    : 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop';
+
+  const points = [
+    { icon:MapPin, t:s.point1Title||'2 Mins from SG Highway', d:s.point1Desc||'Excellent Connectivity' },
+    { icon:Route, t:s.point2Title||'Easy Access to SP Ring Road', d:s.point2Desc||'' },
+    { icon:Building2, t:s.point3Title||'Surrounded by Premium', d:s.point3Desc||'Residential & Commercial Developments' },
+  ];
+
+  const titleLines = (s.locationTitle||'PREMIUM LOCATION\nTHAT CONNECTS EVERYTHING').split('\n');
+
+  return (
+    <SlideShell>
+      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
+      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'56%' }}>
+        <img src={imgSrc} alt="map" style={{ width:'100%',height:'100%',objectFit:'cover',opacity:0.75 }} />
+        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 35%,white 100%)' }} />
+      </div>
+      <div style={{ position:'absolute',inset:0,padding:'5%',paddingRight:'52%',display:'flex',flexDirection:'column',justifyContent:'center' }}>
+        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'4%' }}>
+          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>03</div>
+          <div>
+            <div style={{ fontWeight:900,fontSize:'clamp(10px,2.2vw,26px)',color:hc,lineHeight:1.1 }}>{titleLines[0]||'PREMIUM LOCATION'}</div>
+            <div style={{ fontWeight:900,fontSize:'clamp(10px,2.2vw,26px)',color:ac,lineHeight:1.1 }}>{titleLines[1]||'THAT CONNECTS EVERYTHING'}</div>
+          </div>
+        </div>
+        <div style={{ marginBottom:'4%',fontSize:'clamp(6px,1vw,12px)',color:'#374151',fontWeight:500,whiteSpace:'pre-line' }}>
+          {s.address||'Sindhu Bhavan Road,\nBodakdev, Ahmedabad'}
+        </div>
+        <div style={{ display:'flex',flexDirection:'column',gap:'clamp(5px,1vw,12px)',marginBottom:'5%' }}>
+          {points.map((p,i)=>{
+            const Icon=p.icon;
+            return (
+              <div key={i} style={{ display:'flex',alignItems:'flex-start',gap:8 }}>
+                <div style={{ width:'clamp(12px,2vw,24px)',height:'clamp(12px,2vw,24px)',border:`1.5px solid ${ac}`,borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
+                  <Icon size="clamp(6px,1vw,12px)" style={{ color:ac }} strokeWidth={2} />
+                </div>
+                <div>
+                  <div style={{ fontWeight:700,color:hc,fontSize:'clamp(6px,1.1vw,13px)' }}>{p.t}</div>
+                  {p.d&&<div style={{ fontSize:'clamp(4px,0.8vw,9px)',color:'#6b7280' }}>{p.d}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <button style={{ background:ac,color:'#fff',fontWeight:700,fontSize:'clamp(5px,0.9vw,11px)',padding:'clamp(4px,0.8vw,9px) clamp(8px,1.5vw,18px)',borderRadius:30,border:'none',display:'flex',alignItems:'center',gap:5,cursor:'pointer',width:'fit-content' }}>
+          <MapPin size="clamp(7px,1vw,12px)" /> VIEW ON GOOGLE MAPS
+        </button>
+      </div>
+    </SlideShell>
+  );
+}
+
+function Slide4Preview() {
+  const { data:{ slide4:s } } = useFormData();
+  const hc='#3d1a6e', ac='#f97316';
+  const imgSrc = s.projectImage
+    ? URL.createObjectURL(s.projectImage)
+    : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
+
+  const features = [
+    { icon:Building2, t:s.feature1Title||'Premium Corner Plot', d:s.feature1Desc||'with Wide Frontage' },
+    { icon:Landmark, t:s.feature2Title||'Modern Retail Architecture', d:s.feature2Desc||'with Maximum Visibility' },
+    { icon:Diamond, t:s.feature3Title||'Designed for Premium Brands', d:s.feature3Desc||'& High Footfall' },
+    { icon:Calendar, t:s.possessionLabel||'Possession', d:s.possessionDate||'March 2027' },
+  ];
+
+  return (
+    <SlideShell>
+      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
+      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'56%' }}>
+        <img src={imgSrc} alt="project" style={{ width:'100%',height:'100%',objectFit:'cover' }} />
+        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 40%,white 100%)' }} />
+        <div style={{ position:'absolute',bottom:'6%',right:'4%',background:hc,color:'#fff',padding:'clamp(5px,0.9vw,10px) clamp(8px,1.4vw,16px)',borderRadius:7,textAlign:'center' }}>
+          <div style={{ fontSize:'clamp(4px,0.6vw,7px)',letterSpacing:'0.12em',opacity:0.65,marginBottom:2 }}>EXPECTED POSSESSION</div>
+          <div style={{ fontSize:'clamp(8px,1.5vw,17px)',fontWeight:900,letterSpacing:'0.05em' }}>{(s.possessionDate||'MARCH 2027').toUpperCase()}</div>
+        </div>
+      </div>
+      <div style={{ position:'absolute',inset:0,padding:'5%',paddingRight:'52%',display:'flex',flexDirection:'column',justifyContent:'center' }}>
+        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'5%' }}>
+          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>04</div>
+          <div>
+            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:hc,lineHeight:1.1 }}>PROJECT</div>
+            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:ac,lineHeight:1.1 }}>SHOWCASE</div>
+          </div>
+        </div>
+        <div style={{ display:'flex',flexDirection:'column',gap:'clamp(7px,1.3vw,16px)' }}>
+          {features.map((f,i)=>{
+            const Icon=f.icon;
+            return (
+              <div key={i} style={{ display:'flex',alignItems:'flex-start',gap:8 }}>
+                <div style={{ width:'clamp(12px,2vw,24px)',height:'clamp(12px,2vw,24px)',border:`1.5px solid ${ac}`,borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
+                  <Icon size="clamp(6px,1vw,12px)" style={{ color:ac }} strokeWidth={2} />
+                </div>
+                <div>
+                  <div style={{ fontWeight:700,color:hc,fontSize:'clamp(6px,1.1vw,13px)' }}>{f.t}</div>
+                  <div style={{ fontSize:'clamp(4px,0.8vw,9px)',color:'#6b7280' }}>{f.d}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SlideShell>
+  );
+}
+
+function Slide5Preview() {
+  const { data:{ slide5:s } } = useFormData();
+  const hc='#3d1a6e', ac='#f97316';
+  const imgSrc = s.constructionImage
+    ? URL.createObjectURL(s.constructionImage)
+    : 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2070&auto=format&fit=crop';
+
+  const items = [
+    { icon:CheckCircle2, t:s.progress1Title||'Foundation', st:s.progress1Status||'Completed' },
+    { icon:Loader2, t:s.progress2Title||'Structure', st:s.progress2Status||'In Progress' },
+    { icon:Clock, t:s.progress3Title||'Finishing', st:s.progress3Status||'Ahead' },
+    { icon:Calendar, t:s.progress4Title||'Possession', st:s.progress4Status||'March 2027' },
+  ];
+
+  return (
+    <SlideShell>
+      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
+      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'56%' }}>
+        <img src={imgSrc} alt="construction" style={{ width:'100%',height:'100%',objectFit:'cover' }} />
+        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 40%,white 100%)' }} />
+        <div style={{ position:'absolute',bottom:'6%',right:'4%',background:hc,color:'#fff',padding:'clamp(5px,0.9vw,10px) clamp(8px,1.4vw,16px)',borderRadius:7,textAlign:'center' }}>
+          <div style={{ fontSize:'clamp(4px,0.6vw,7px)',letterSpacing:'0.12em',opacity:0.65,marginBottom:2 }}>CURRENT STATUS</div>
+          <div style={{ fontSize:'clamp(8px,1.5vw,17px)',fontWeight:900,letterSpacing:'0.05em' }}>{(s.currentStatus||'JUNE 2026').toUpperCase()}</div>
+        </div>
+      </div>
+      <div style={{ position:'absolute',inset:0,padding:'5%',paddingRight:'52%',display:'flex',flexDirection:'column',justifyContent:'center' }}>
+        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'5%' }}>
+          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>05</div>
+          <div>
+            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:hc,lineHeight:1.1 }}>CONSTRUCTION</div>
+            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:ac,lineHeight:1.1 }}>PROGRESS</div>
+          </div>
+        </div>
+        <div style={{ display:'flex',flexDirection:'column',gap:'clamp(7px,1.3vw,16px)' }}>
+          {items.map((it,i)=>{
+            const Icon=it.icon;
+            return (
+              <div key={i} style={{ display:'flex',alignItems:'flex-start',gap:8 }}>
+                <div style={{ width:'clamp(12px,2vw,24px)',height:'clamp(12px,2vw,24px)',border:`1.5px solid ${ac}`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
+                  <Icon size="clamp(6px,1vw,12px)" style={{ color:ac }} strokeWidth={2} />
+                </div>
+                <div>
+                  <div style={{ fontWeight:700,color:hc,fontSize:'clamp(6px,1.1vw,13px)' }}>{it.t}</div>
+                  <div style={{ fontSize:'clamp(4px,0.8vw,9px)',color:'#6b7280' }}>{it.st}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SlideShell>
+  );
+}
+
+const SLIDE_PREVIEWS = [Slide1Preview, Slide2Preview, Slide3Preview, Slide4Preview, Slide5Preview];
+
+// ─────────────────────── FORM FIELD HELPERS ─────────────────────────────────
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '10px 14px', background: '#f8fafb',
+  border: '1.5px solid #d1d5db', borderRadius: 8, color: '#1a2e1a',
+  fontSize: 14, outline: 'none', transition: 'border 0.2s',
+};
+const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 700, color: '#14532d', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' };
+const textareaStyle: React.CSSProperties = { ...inputStyle, resize: 'vertical', minHeight: 70 };
+const fileStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', background: '#f0fdf4', borderColor: '#bbf7d0' };
+
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div style={{ marginBottom: 16 }}>
+    <label style={labelStyle}>{label}</label>
+    {children}
+  </div>
+);
+
+// ─────────────────────── STEP FORMS ─────────────────────────────────────────
+
+function Step1Form() {
+  const { data: { slide1: s }, updateSlide1 } = useFormData();
+  const u = (k: any, v: any) => updateSlide1({ [k]: v });
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Field label="Slide Number">
+          <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="01" />
+        </Field>
+        <Field label="Theme Color">
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input type="color" value={s.themeColor} onChange={e => u('themeColor', e.target.value)} style={{ width: 50, height: 42, border: 'none', borderRadius: 6, cursor: 'pointer', background: 'transparent' }} />
+            <input style={{ ...inputStyle, flex: 1 }} value={s.themeColor} onChange={e => u('themeColor', e.target.value)} />
+          </div>
+        </Field>
+      </div>
+      <Field label="Project Title">
+        <input style={inputStyle} value={s.title} onChange={e => u('title', e.target.value)} placeholder="MADHAV HIGHSTREET" />
+      </Field>
+      <Field label="Subtitle / Tagline">
+        <textarea style={textareaStyle} value={s.subtitle} onChange={e => u('subtitle', e.target.value)} placeholder="THE NEXT PREMIUM RETAIL DESTINATION" />
+      </Field>
+      <Field label="Address">
+        <textarea style={textareaStyle} value={s.address} onChange={e => u('address', e.target.value)} rows={2} placeholder="SINDHU BHAVAN ROAD, BODAKDEV, AHMEDABAD" />
+      </Field>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Field label="Company Name">
+          <input style={inputStyle} value={s.companyName} onChange={e => u('companyName', e.target.value)} placeholder="AESTHETIC ARC" />
+        </Field>
+        <Field label="Company Tagline">
+          <input style={inputStyle} value={s.companyTagline} onChange={e => u('companyTagline', e.target.value)} placeholder="PROPERTY LEASING COMPANY" />
+        </Field>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Field label="Font Color">
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input type="color" value={s.fontColor} onChange={e => u('fontColor', e.target.value)} style={{ width: 50, height: 42, border: 'none', borderRadius: 6, cursor: 'pointer', background: 'transparent' }} />
+            <input style={{ ...inputStyle, flex: 1 }} value={s.fontColor} onChange={e => u('fontColor', e.target.value)} />
+          </div>
+        </Field>
+        <Field label="Company Logo">
+          <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('logo', e.target.files[0])} />
+        </Field>
+      </div>
+      <Field label="Background Image (Right side photo)">
+        <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('backgroundImage', e.target.files[0])} />
+        {s.backgroundImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.backgroundImage.name}</span>}
+      </Field>
+    </div>
+  );
+}
+
+function Step2Form() {
+  const { data: { slide2: s }, updateSlide2 } = useFormData();
+  const u = (k: any, v: any) => updateSlide2({ [k]: v });
+
+  return (
+    <div>
+      <Field label="City Name (Large heading)">
+        <input style={inputStyle} value={s.cityName} onChange={e => u('cityName', e.target.value)} placeholder="AHMEDABAD" />
+      </Field>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Field label="Population"><input style={inputStyle} value={s.population} onChange={e => u('population', e.target.value)} placeholder="90.6 Lakh+" /></Field>
+        <Field label="GDP"><input style={inputStyle} value={s.gdp} onChange={e => u('gdp', e.target.value)} placeholder="$135 Billion+" /></Field>
+        <Field label="GDP Growth"><input style={inputStyle} value={s.gdpGrowth} onChange={e => u('gdpGrowth', e.target.value)} placeholder="6.7%+" /></Field>
+        <Field label="World's 1st (achievement)"><input style={inputStyle} value={s.worldFirst} onChange={e => u('worldFirst', e.target.value)} placeholder="Heritage City With BRTS" /></Field>
+        <Field label="Metro Network"><input style={inputStyle} value={s.metroKm} onChange={e => u('metroKm', e.target.value)} placeholder="40 KM+" /></Field>
+        <Field label="BRTS Network"><input style={inputStyle} value={s.brtsKm} onChange={e => u('brtsKm', e.target.value)} placeholder="160 KM+" /></Field>
+        <Field label="Daily Flights"><input style={inputStyle} value={s.dailyFlights} onChange={e => u('dailyFlights', e.target.value)} placeholder="130+" /></Field>
+        <Field label="Retail Rank"><input style={inputStyle} value={s.retailRank} onChange={e => u('retailRank', e.target.value)} placeholder="Top 3 Fastest Growing..." /></Field>
+      </div>
+      <Field label="Upcoming Infrastructure (one per line)">
+        <textarea style={{ ...textareaStyle, minHeight: 100 }} value={s.infrastructure} onChange={e => u('infrastructure', e.target.value)} placeholder={"Bullet Train Project\nDedicated Freight Corridor\n..."} />
+      </Field>
+      <Field label="City Photo (Right side)">
+        <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('cityImage', e.target.files[0])} />
+        {s.cityImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.cityImage.name}</span>}
+      </Field>
+    </div>
+  );
+}
+
+function Step3Form() {
+  const { data: { slide3: s }, updateSlide3 } = useFormData();
+  const u = (k: any, v: any) => updateSlide3({ [k]: v });
+
+  return (
+    <div>
+      <Field label="Slide Title (two lines, press Enter for line 2)">
+        <textarea style={{ ...textareaStyle, minHeight: 60 }} value={s.locationTitle} onChange={e => u('locationTitle', e.target.value)} placeholder={"PREMIUM LOCATION\nTHAT CONNECTS EVERYTHING"} />
+      </Field>
+      <Field label="Address">
+        <textarea style={textareaStyle} value={s.address} onChange={e => u('address', e.target.value)} rows={2} placeholder={"Sindhu Bhavan Road,\nBodakdev, Ahmedabad"} />
+      </Field>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location Point 1</div>
+        <Field label="Title"><input style={inputStyle} value={s.point1Title} onChange={e => u('point1Title', e.target.value)} placeholder="2 Mins from SG Highway" /></Field>
+        <Field label="Description"><input style={inputStyle} value={s.point1Desc} onChange={e => u('point1Desc', e.target.value)} placeholder="Excellent Connectivity" /></Field>
+      </div>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location Point 2</div>
+        <Field label="Title"><input style={inputStyle} value={s.point2Title} onChange={e => u('point2Title', e.target.value)} placeholder="Easy Access to SP Ring Road" /></Field>
+        <Field label="Description"><input style={inputStyle} value={s.point2Desc} onChange={e => u('point2Desc', e.target.value)} placeholder="Optional description" /></Field>
+      </div>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location Point 3</div>
+        <Field label="Title"><input style={inputStyle} value={s.point3Title} onChange={e => u('point3Title', e.target.value)} placeholder="Surrounded by Premium" /></Field>
+        <Field label="Description"><input style={inputStyle} value={s.point3Desc} onChange={e => u('point3Desc', e.target.value)} placeholder="Residential & Commercial Developments" /></Field>
+      </div>
+      <Field label="Google Maps URL">
+        <input style={inputStyle} value={s.mapsUrl} onChange={e => u('mapsUrl', e.target.value)} placeholder="https://maps.google.com/..." />
+      </Field>
+      <Field label="Map / Location Image (Right side)">
+        <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('mapImage', e.target.files[0])} />
+        {s.mapImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.mapImage.name}</span>}
+      </Field>
+    </div>
+  );
+}
+
+function Step4Form() {
+  const { data: { slide4: s }, updateSlide4 } = useFormData();
+  const u = (k: any, v: any) => updateSlide4({ [k]: v });
+  const features = [
+    { tK: 'feature1Title', dK: 'feature1Desc', label: 'Feature 1', pt: 'Premium Corner Plot', pd: 'with Wide Frontage' },
+    { tK: 'feature2Title', dK: 'feature2Desc', label: 'Feature 2', pt: 'Modern Retail Architecture', pd: 'with Maximum Visibility' },
+    { tK: 'feature3Title', dK: 'feature3Desc', label: 'Feature 3', pt: 'Designed for Premium Brands', pd: '& High Footfall' },
+  ];
+
+  return (
+    <div>
+      {features.map((f, i) => (
+        <div key={i} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</div>
+          <Field label="Feature Title"><input style={inputStyle} value={(s as any)[f.tK]} onChange={e => u(f.tK, e.target.value)} placeholder={f.pt} /></Field>
+          <Field label="Feature Description"><input style={inputStyle} value={(s as any)[f.dK]} onChange={e => u(f.dK, e.target.value)} placeholder={f.pd} /></Field>
+        </div>
+      ))}
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 4 (Possession)</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label="Label"><input style={inputStyle} value={s.possessionLabel} onChange={e => u('possessionLabel', e.target.value)} placeholder="Possession" /></Field>
+          <Field label="Date (also shown in badge)"><input style={inputStyle} value={s.possessionDate} onChange={e => u('possessionDate', e.target.value)} placeholder="March 2027" /></Field>
+        </div>
+      </div>
+      <Field label="Project Building Image (Right side)">
+        <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('projectImage', e.target.files[0])} />
+        {s.projectImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.projectImage.name}</span>}
+      </Field>
+    </div>
+  );
+}
+
+function Step5Form() {
+  const { data: { slide5: s }, updateSlide5 } = useFormData();
+  const u = (k: any, v: any) => updateSlide5({ [k]: v });
+  const items = [
+    { tK: 'progress1Title', sK: 'progress1Status', label: 'Progress Item 1', pt: 'Foundation', ps: 'Completed' },
+    { tK: 'progress2Title', sK: 'progress2Status', label: 'Progress Item 2', pt: 'Structure', ps: 'In Progress' },
+    { tK: 'progress3Title', sK: 'progress3Status', label: 'Progress Item 3', pt: 'Finishing', ps: 'Ahead' },
+    { tK: 'progress4Title', sK: 'progress4Status', label: 'Progress Item 4 (Possession)', pt: 'Possession', ps: 'March 2027' },
+  ];
+
+  return (
+    <div>
+      {items.map((it, i) => (
+        <div key={i} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{it.label}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Title"><input style={inputStyle} value={(s as any)[it.tK]} onChange={e => u(it.tK, e.target.value)} placeholder={it.pt} /></Field>
+            <Field label="Status"><input style={inputStyle} value={(s as any)[it.sK]} onChange={e => u(it.sK, e.target.value)} placeholder={it.ps} /></Field>
+          </div>
+        </div>
+      ))}
+      <Field label="Current Status (Badge on slide)">
+        <input style={inputStyle} value={s.currentStatus} onChange={e => u('currentStatus', e.target.value)} placeholder="JUNE 2026" />
+      </Field>
+      <Field label="Construction Photo (Right side)">
+        <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('constructionImage', e.target.files[0])} />
+        {s.constructionImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.constructionImage.name}</span>}
+      </Field>
+    </div>
+  );
+}
+
+const STEPS = [
+  { num: 1, title: 'Cover Slide', subtitle: 'Title, company & theme', form: Step1Form },
+  { num: 2, title: 'City At A Glance', subtitle: 'Stats & infrastructure', form: Step2Form },
+  { num: 3, title: 'Premium Location', subtitle: 'Map & location points', form: Step3Form },
+  { num: 4, title: 'Project Showcase', subtitle: 'Features & possession', form: Step4Form },
+  { num: 5, title: 'Construction', subtitle: 'Progress & status', form: Step5Form },
+];
+
+// ─────────────────────── MAIN STEPPER APP ────────────────────────────────────
+
+export default function StepperApp() {
+  const [step, setStep] = useState(0); // 0-indexed
+  const [showAllSlides, setShowAllSlides] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { data } = useFormData();
+
+  const CurrentForm = STEPS[step].form;
+  const CurrentPreview = SLIDE_PREVIEWS[step];
+
+  // Helper: convert a File to base64 data URL
+  const fileToBase64 = (file: File | Blob): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Helper: fetch an image URL and return base64 data URL
+  const urlToBase64 = (url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = url;
+    });
+  };
+
+  // Helper: get base64 from File or fallback URL, returns null if both fail
+  const getImageBase64 = async (file: File | null, fallbackUrl: string): Promise<string | null> => {
+    if (file) {
+      return await fileToBase64(file);
+    }
+    try {
+      return await urlToBase64(fallbackUrl);
+    } catch {
+      return null;
+    }
+  };
+
+  const handleDownloadPPT = async () => {
+    setIsGenerating(true);
+    
+    try {
+      const PptxGenJS = await loadPptxGenJS();
+      const pptx = new PptxGenJS();
+
+      // ==================== SLIDE 1: COVER PAGE ====================
+      const slide1 = pptx.addSlide();
+      const themeColor = data.slide1.themeColor.replace('#', '');
+      const fontColor = data.slide1.fontColor.replace('#', '');
+      
+      // Background image
+      const bgImageData = await getImageBase64(
+        data.slide1.backgroundImage,
+        'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
+      );
+      
+      if (bgImageData) {
+        slide1.background = { data: bgImageData };
+      } else {
+        slide1.background = { color: themeColor };
+      }
+      
+      // Gradient overlay – simulate left-to-right gradient with multiple rect strips
+      // Left side: nearly opaque theme color → right side: transparent
+      const gradientSteps = [
+        { x: 0, w: 3, transparency: 5 },    // almost solid
+        { x: 3, w: 1.5, transparency: 20 },  // mostly opaque
+        { x: 4.5, w: 1.5, transparency: 45 }, // semi-transparent
+        { x: 6, w: 1.5, transparency: 70 },   // mostly transparent
+        { x: 7.5, w: 2.5, transparency: 90 }, // nearly invisible
+      ];
+      gradientSteps.forEach(g => {
+        slide1.addShape(pptx.ShapeType.rect, {
+          x: g.x, y: 0, w: g.w, h: 7.5,
+          fill: { color: themeColor, transparency: g.transparency },
+          line: { type: 'none' }
+        });
+      });
+
+      // Slide number badge
+      slide1.addText(data.slide1.slideNumber || '01', {
+        x: 0.4, y: 0.35, w: 0.7, h: 0.45, fontSize: 16, bold: true,
+        color: fontColor, fill: { color: themeColor },
+        align: 'center', valign: 'middle',
+      });
+
+      // Title
+      slide1.addText(data.slide1.title || 'MADHAV\nHIGHSTREET', {
+        x: 0.4, y: 1.0, w: 5, h: 1.4, fontSize: 44, bold: true,
+        color: fontColor, fontFace: 'Arial',
+      });
+
+      // Subtitle
+      slide1.addText(data.slide1.subtitle || 'THE NEXT PREMIUM RETAIL DESTINATION', {
+        x: 0.4, y: 2.5, w: 5, h: 0.5, fontSize: 16, bold: true,
+        color: fontColor, fontFace: 'Arial',
+      });
+
+      // Address
+      slide1.addText(data.slide1.address || 'SINDHU BHAVAN ROAD,\nBODAKDEV, AHMEDABAD', {
+        x: 0.4, y: 3.1, w: 5, h: 0.65, fontSize: 12,
+        color: fontColor, fontFace: 'Arial',
+      });
+
+      // Divider line
+      slide1.addShape(pptx.ShapeType.rect, {
+        x: 0.4, y: 3.85, w: 1.2, h: 0.03,
+        fill: { color: fontColor },
+        line: { type: 'none' }
+      });
+
+      // Presented by
+      slide1.addText('Presented by', {
+        x: 0.4, y: 4.05, w: 5, h: 0.3, fontSize: 10,
+        color: fontColor, fontFace: 'Arial',
+      });
+
+      // Logo + Company name
+      let logoData: string | null = null;
+      if (data.slide1.logo) {
+        logoData = await fileToBase64(data.slide1.logo);
+      }
+
+      if (logoData) {
+        slide1.addImage({
+          data: logoData,
+          x: 0.4, y: 4.4, w: 0.4, h: 0.4,
+          rounding: true,
+        });
+        slide1.addText(data.slide1.companyName || 'AESTHETIC ARC', {
+          x: 0.9, y: 4.35, w: 4, h: 0.3, fontSize: 14, bold: true,
+          color: fontColor, fontFace: 'Arial',
+        });
+        slide1.addText(data.slide1.companyTagline || 'PROPERTY LEASING COMPANY', {
+          x: 0.9, y: 4.65, w: 4, h: 0.25, fontSize: 9,
+          color: fontColor, fontFace: 'Arial',
+        });
+      } else {
+        // Orange logo placeholder square with "A"
+        slide1.addShape(pptx.ShapeType.rect, {
+          x: 0.4, y: 4.4, w: 0.35, h: 0.35,
+          fill: { color: 'ff6b00' },
+          line: { type: 'none' },
+          rectRadius: 0.05,
+        });
+        slide1.addText('A', {
+          x: 0.4, y: 4.4, w: 0.35, h: 0.35, fontSize: 14, bold: true,
+          color: 'FFFFFF', align: 'center', valign: 'middle',
+        });
+        slide1.addText(data.slide1.companyName || 'AESTHETIC ARC', {
+          x: 0.85, y: 4.35, w: 4, h: 0.3, fontSize: 14, bold: true,
+          color: fontColor, fontFace: 'Arial',
+        });
+        slide1.addText(data.slide1.companyTagline || 'PROPERTY LEASING COMPANY', {
+          x: 0.85, y: 4.65, w: 4, h: 0.25, fontSize: 9,
+          color: fontColor, fontFace: 'Arial',
+        });
+      }
+
+      // Categories – single row of 10 at the bottom (matching web preview)
+      const categories = [
+        'Fashion', 'Retail', 'Lifestyle', 'F&B', 'Electronics',
+        'Hypermarket', 'Corporate\nOffices', 'Health &\nWellness', 'Multiplex', 'Game Zone',
+      ];
+      // Unicode icons that render well in PowerPoint
+      const catIcons = ['🏪', '🛍️', '🌿', '🍽️', '💻', '🛒', '🏢', '❤️', '🎬', '🎮'];
+
+      const catY = 5.25;
+      const catW = 0.82;
+      const catH = 0.75;
+      const catGap = 0.1;
+      const catStartX = 0.4;
+      const totalCatWidth = 10 * catW + 9 * catGap; // ~9.1
+      const actualStartX = (10 - totalCatWidth) / 2; // center them
+
+      categories.forEach((name, i) => {
+        const xPos = actualStartX + i * (catW + catGap);
+        // Background box
+        slide1.addShape(pptx.ShapeType.rect, {
+          x: xPos, y: catY, w: catW, h: catH,
+          fill: { color: fontColor, transparency: 85 },
+          line: { color: fontColor, width: 0.5, dashType: 'solid' },
+          rectRadius: 0.05,
+        });
+        // Icon
+        slide1.addText(catIcons[i], {
+          x: xPos, y: catY, w: catW, h: catH * 0.55, fontSize: 16,
+          align: 'center', valign: 'middle',
+        });
+        // Name
+        slide1.addText(name, {
+          x: xPos, y: catY + catH * 0.5, w: catW, h: catH * 0.5, fontSize: 6,
+          color: fontColor, align: 'center', valign: 'top', bold: true, fontFace: 'Arial',
+        });
+      });
+
+      // ==================== SLIDE 2: CITY AT A GLANCE ====================
+      const slide2 = pptx.addSlide();
+      slide2.background = { color: 'FFFFFF' };
+      
+      // City image on right side
+      const cityImageData = await getImageBase64(
+        data.slide2.cityImage,
+        'https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=2070&auto=format&fit=crop'
+      );
+      
+      if (cityImageData) {
+        slide2.addImage({
+          data: cityImageData,
+          x: 5.5, y: 0, w: 4.5, h: 7.5,
+          sizing: { type: 'cover', w: 4.5, h: 7.5 },
+        });
+        // White fade from left
+        slide2.addShape(pptx.ShapeType.rect, {
+          x: 5.5, y: 0, w: 1.5, h: 7.5,
+          fill: { color: 'FFFFFF', transparency: 40 },
+          line: { type: 'none' }
+        });
+      } else {
+        slide2.addShape(pptx.ShapeType.rect, {
+          x: 5.5, y: 0, w: 4.5, h: 7.5,
+          fill: { color: 'e5e7eb' },
+          line: { type: 'none' }
+        });
+      }
+
+      // Header
+      slide2.addText('02', {
+        x: 0.5, y: 0.4, w: 0.55, h: 0.5, fontSize: 14, bold: true,
+        color: 'FFFFFF', fill: { color: '3d1a6e' },
+        align: 'center', valign: 'middle',
+      });
+
+      slide2.addText(data.slide2.cityName || 'AHMEDABAD', {
+        x: 1.15, y: 0.35, w: 4, h: 0.55, fontSize: 28, bold: true, color: '3d1a6e',
+      });
+      slide2.addText('AT A GLANCE', {
+        x: 1.15, y: 0.9, w: 4, h: 0.45, fontSize: 24, bold: true, color: 'f97316',
+      });
+      slide2.addText('A Thriving City. A Growing Opportunity.', {
+        x: 1.15, y: 1.35, w: 4, h: 0.3, fontSize: 10, color: '555555',
+      });
+
+      // Stats in grid (4 columns x 2 rows)
+      const stats = [
+        { value: data.slide2.population || '90.6 Lakh+', label: 'Population' },
+        { value: data.slide2.gdp || '$135 Billion+', label: 'GDP' },
+        { value: data.slide2.gdpGrowth || '6.7%+', label: 'GDP Growth' },
+        { value: "World's 1st", label: data.slide2.worldFirst || 'Heritage City With BRTS', highlight: true },
+        { value: data.slide2.metroKm || '40 KM+', label: 'Metro Network' },
+        { value: data.slide2.brtsKm || '160 KM+', label: 'BRTS Network' },
+        { value: data.slide2.dailyFlights || '130+', label: 'Daily Flights' },
+        { value: 'Top 3', label: data.slide2.retailRank || 'Fastest Growing Retail Market', highlight: true },
+      ];
+
+      stats.forEach((stat, i) => {
+        const col = i % 4;
+        const row = Math.floor(i / 4);
+        const xPos = 0.4 + (col * 1.2);
+        const yPos = 1.85 + (row * 1.25);
+        
+        const borderColor = stat.highlight ? '3d1a6e' : 'e5e7eb';
+        const bgColor = stat.highlight ? 'f5f0ff' : 'FFFFFF';
+        
+        slide2.addShape(pptx.ShapeType.rect, {
+          x: xPos, y: yPos, w: 1.1, h: 1.1,
+          fill: { color: bgColor },
+          line: { color: borderColor, width: 1 },
+          rectRadius: 0.05,
+        });
+        slide2.addText(stat.value, {
+          x: xPos + 0.08, y: yPos + 0.15, w: 0.95, h: 0.4,
+          fontSize: 12, bold: true, color: '3d1a6e',
+        });
+        slide2.addText(stat.label, {
+          x: xPos + 0.08, y: yPos + 0.6, w: 0.95, h: 0.4,
+          fontSize: 7, color: '666666',
+        });
+      });
+
+      // Infrastructure section
+      const infraLines = (data.slide2.infrastructure || '').split('\n').filter(Boolean);
+      if (infraLines.length > 0) {
+        slide2.addText('UPCOMING INFRASTRUCTURE', {
+          x: 0.4, y: 4.5, w: 5, h: 0.35, fontSize: 10, bold: true, color: '3d1a6e',
+          letterSpacing: 1,
+        });
+        const half = Math.ceil(infraLines.length / 2);
+        infraLines.forEach((line, i) => {
+          const col = i < half ? 0 : 1;
+          const row = i < half ? i : i - half;
+          slide2.addText(`• ${line}`, {
+            x: 0.4 + (col * 2.5), y: 4.95 + (row * 0.3), w: 2.4, h: 0.28,
+            fontSize: 8, color: '374151',
+          });
+        });
+      }
+
+      // ==================== SLIDE 3: PREMIUM LOCATION ====================
+      const slide3 = pptx.addSlide();
+      slide3.background = { color: 'FFFFFF' };
+      
+      // Map image on right
+      const mapImageData = await getImageBase64(
+        data.slide3.mapImage,
+        'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop'
+      );
+      
+      if (mapImageData) {
+        slide3.addImage({
+          data: mapImageData,
+          x: 4.5, y: 0, w: 5.5, h: 7.5,
+          sizing: { type: 'cover', w: 5.5, h: 7.5 },
+        });
+        // White fade from left
+        slide3.addShape(pptx.ShapeType.rect, {
+          x: 4.5, y: 0, w: 1.8, h: 7.5,
+          fill: { color: 'FFFFFF', transparency: 30 },
+          line: { type: 'none' }
+        });
+      } else {
+        slide3.addShape(pptx.ShapeType.rect, {
+          x: 4.5, y: 0, w: 5.5, h: 7.5,
+          fill: { color: 'e5e7eb' },
+          line: { type: 'none' }
+        });
+      }
+
+      // Header
+      slide3.addText('03', {
+        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
+        color: 'FFFFFF', fill: { color: '3d1a6e' },
+        align: 'center', valign: 'middle',
+      });
+
+      const locationTitle = (data.slide3.locationTitle || 'PREMIUM LOCATION\nTHAT CONNECTS EVERYTHING').split('\n');
+      slide3.addText(locationTitle[0] || 'PREMIUM LOCATION', {
+        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 24, bold: true, color: '3d1a6e',
+      });
+      if (locationTitle[1]) {
+        slide3.addText(locationTitle[1], {
+          x: 1.15, y: 1.45, w: 3.5, h: 0.5, fontSize: 22, bold: true, color: 'f97316',
+        });
+      }
+
+      slide3.addText(data.slide3.address || 'Sindhu Bhavan Road,\nBodakdev, Ahmedabad', {
+        x: 0.5, y: 2.2, w: 4, h: 0.6, fontSize: 12, color: '374151',
+      });
+
+      // Location points with orange icon boxes
+      const points = [
+        { title: data.slide3.point1Title || '2 Mins from SG Highway', desc: data.slide3.point1Desc || 'Excellent Connectivity' },
+        { title: data.slide3.point2Title || 'Easy Access to SP Ring Road', desc: data.slide3.point2Desc || '' },
+        { title: data.slide3.point3Title || 'Surrounded by Premium', desc: data.slide3.point3Desc || 'Residential & Commercial Developments' },
+      ];
+
+      points.forEach((point, i) => {
+        const yPos = 3.1 + (i * 1.1);
+        // Orange bordered icon box
+        slide3.addShape(pptx.ShapeType.rect, {
+          x: 0.5, y: yPos, w: 0.35, h: 0.35,
+          fill: { color: 'FFFFFF' },
+          line: { color: 'f97316', width: 1.5 },
+          rectRadius: 0.05,
+        });
+        slide3.addText(point.title, {
+          x: 0.95, y: yPos - 0.05, w: 3.5, h: 0.35, fontSize: 13, bold: true, color: '3d1a6e',
+        });
+        if (point.desc) {
+          slide3.addText(point.desc, {
+            x: 0.95, y: yPos + 0.3, w: 3.5, h: 0.3, fontSize: 10, color: '6b7280',
+          });
+        }
+      });
+
+      // Google Maps button
+      slide3.addShape(pptx.ShapeType.rect, {
+        x: 0.5, y: 6.2, w: 2.2, h: 0.4,
+        fill: { color: 'f97316' },
+        line: { type: 'none' },
+        rectRadius: 0.2,
+      });
+      slide3.addText('📍 VIEW ON GOOGLE MAPS', {
+        x: 0.5, y: 6.2, w: 2.2, h: 0.4, fontSize: 8, bold: true,
+        color: 'FFFFFF', align: 'center', valign: 'middle',
+        hyperlink: { url: data.slide3.mapsUrl || 'https://maps.google.com' },
+      });
+
+      // ==================== SLIDE 4: PROJECT SHOWCASE ====================
+      const slide4 = pptx.addSlide();
+      slide4.background = { color: 'FFFFFF' };
+      
+      // Project image on right
+      const projectImageData = await getImageBase64(
+        data.slide4.projectImage,
+        'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
+      );
+      
+      if (projectImageData) {
+        slide4.addImage({
+          data: projectImageData,
+          x: 4.5, y: 0, w: 5.5, h: 7.5,
+          sizing: { type: 'cover', w: 5.5, h: 7.5 },
+        });
+        slide4.addShape(pptx.ShapeType.rect, {
+          x: 4.5, y: 0, w: 1.8, h: 7.5,
+          fill: { color: 'FFFFFF', transparency: 30 },
+          line: { type: 'none' }
+        });
+      } else {
+        slide4.addShape(pptx.ShapeType.rect, {
+          x: 4.5, y: 0, w: 5.5, h: 7.5,
+          fill: { color: 'e5e7eb' },
+          line: { type: 'none' }
+        });
+      }
+
+      // Header
+      slide4.addText('04', {
+        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
+        color: 'FFFFFF', fill: { color: '3d1a6e' },
+        align: 'center', valign: 'middle',
+      });
+
+      slide4.addText('PROJECT', {
+        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+      });
+      slide4.addText('SHOWCASE', {
+        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
+      });
+
+      const features = [
+        { title: data.slide4.feature1Title || 'Premium Corner Plot', desc: data.slide4.feature1Desc || 'with Wide Frontage' },
+        { title: data.slide4.feature2Title || 'Modern Retail Architecture', desc: data.slide4.feature2Desc || 'with Maximum Visibility' },
+        { title: data.slide4.feature3Title || 'Designed for Premium Brands', desc: data.slide4.feature3Desc || '& High Footfall' },
+        { title: data.slide4.possessionLabel || 'Possession', desc: data.slide4.possessionDate || 'March 2027' },
+      ];
+
+      features.forEach((feature, i) => {
+        const yPos = 2.4 + (i * 1.1);
+        // Orange bordered icon box
+        slide4.addShape(pptx.ShapeType.rect, {
+          x: 0.5, y: yPos, w: 0.35, h: 0.35,
+          fill: { color: 'FFFFFF' },
+          line: { color: 'f97316', width: 1.5 },
+          rectRadius: 0.05,
+        });
+        slide4.addText(feature.title, {
+          x: 0.95, y: yPos - 0.05, w: 3.5, h: 0.35, fontSize: 13, bold: true, color: '3d1a6e',
+        });
+        slide4.addText(feature.desc, {
+          x: 0.95, y: yPos + 0.3, w: 3.5, h: 0.3, fontSize: 10, color: '6b7280',
+        });
+      });
+
+      // Possession badge on image
+      slide4.addShape(pptx.ShapeType.rect, {
+        x: 7.5, y: 5.8, w: 2, h: 0.9,
+        fill: { color: '3d1a6e' },
+        line: { type: 'none' },
+        rectRadius: 0.08,
+      });
+      slide4.addText('EXPECTED POSSESSION', {
+        x: 7.5, y: 5.85, w: 2, h: 0.3, fontSize: 7, color: 'FFFFFF', align: 'center',
+        letterSpacing: 1,
+      });
+      slide4.addText((data.slide4.possessionDate || 'MARCH 2027').toUpperCase(), {
+        x: 7.5, y: 6.15, w: 2, h: 0.45, fontSize: 15, bold: true, color: 'FFFFFF', align: 'center',
+      });
+
+      // ==================== SLIDE 5: CONSTRUCTION PROGRESS ====================
+      const slide5 = pptx.addSlide();
+      slide5.background = { color: 'FFFFFF' };
+      
+      // Construction image on right
+      const constructionImageData = await getImageBase64(
+        data.slide5.constructionImage,
+        'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2070&auto=format&fit=crop'
+      );
+      
+      if (constructionImageData) {
+        slide5.addImage({
+          data: constructionImageData,
+          x: 4.5, y: 0, w: 5.5, h: 7.5,
+          sizing: { type: 'cover', w: 5.5, h: 7.5 },
+        });
+        slide5.addShape(pptx.ShapeType.rect, {
+          x: 4.5, y: 0, w: 1.8, h: 7.5,
+          fill: { color: 'FFFFFF', transparency: 30 },
+          line: { type: 'none' }
+        });
+      } else {
+        slide5.addShape(pptx.ShapeType.rect, {
+          x: 4.5, y: 0, w: 5.5, h: 7.5,
+          fill: { color: 'e5e7eb' },
+          line: { type: 'none' }
+        });
+      }
+
+      // Header
+      slide5.addText('05', {
+        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
+        color: 'FFFFFF', fill: { color: '3d1a6e' },
+        align: 'center', valign: 'middle',
+      });
+
+      slide5.addText('CONSTRUCTION', {
+        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+      });
+      slide5.addText('PROGRESS', {
+        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
+      });
+
+      const progressItems = [
+        { title: data.slide5.progress1Title || 'Foundation', status: data.slide5.progress1Status || 'Completed' },
+        { title: data.slide5.progress2Title || 'Structure', status: data.slide5.progress2Status || 'In Progress' },
+        { title: data.slide5.progress3Title || 'Finishing', status: data.slide5.progress3Status || 'Ahead' },
+        { title: data.slide5.progress4Title || 'Possession', status: data.slide5.progress4Status || 'March 2027' },
+      ];
+
+      progressItems.forEach((item, i) => {
+        const yPos = 2.4 + (i * 1.1);
+        // Orange circle icon
+        slide5.addShape(pptx.ShapeType.ellipse, {
+          x: 0.5, y: yPos, w: 0.35, h: 0.35,
+          fill: { color: 'FFFFFF' },
+          line: { color: 'f97316', width: 1.5 },
+        });
+        slide5.addText(item.title, {
+          x: 0.95, y: yPos - 0.05, w: 3.5, h: 0.35, fontSize: 13, bold: true, color: '3d1a6e',
+        });
+        slide5.addText(item.status, {
+          x: 0.95, y: yPos + 0.3, w: 3.5, h: 0.3, fontSize: 10, color: '6b7280',
+        });
+      });
+
+      // Current status badge on image
+      slide5.addShape(pptx.ShapeType.rect, {
+        x: 7.5, y: 5.8, w: 2, h: 0.9,
+        fill: { color: '3d1a6e' },
+        line: { type: 'none' },
+        rectRadius: 0.08,
+      });
+      slide5.addText('CURRENT STATUS', {
+        x: 7.5, y: 5.85, w: 2, h: 0.3, fontSize: 7, color: 'FFFFFF', align: 'center',
+        letterSpacing: 1,
+      });
+      slide5.addText((data.slide5.currentStatus || 'JUNE 2026').toUpperCase(), {
+        x: 7.5, y: 6.15, w: 2, h: 0.45, fontSize: 15, bold: true, color: 'FFFFFF', align: 'center',
+      });
+
+      // ==================== SLIDE 6: THANK YOU ====================
+      const slide6 = pptx.addSlide();
+      slide6.background = { color: '1f2937' };
+      
+      // Decorative accent line
+      slide6.addShape(pptx.ShapeType.rect, {
+        x: 4, y: 2.5, w: 2, h: 0.05,
+        fill: { color: 'f97316' },
+        line: { type: 'none' }
+      });
+
+      slide6.addText('Thank You!', {
+        x: 1, y: 2.8, w: 8, h: 1.2, fontSize: 48, bold: true,
+        color: 'FFFFFF', align: 'center', fontFace: 'Arial',
+      });
+      slide6.addText(data.slide1.companyName || 'AESTHETIC ARC', {
+        x: 1, y: 4.0, w: 8, h: 0.5, fontSize: 18, bold: true,
+        color: 'f97316', align: 'center', fontFace: 'Arial',
+      });
+      slide6.addText(data.slide1.companyTagline || 'PROPERTY LEASING COMPANY', {
+        x: 1, y: 4.5, w: 8, h: 0.4, fontSize: 12,
+        color: 'FFFFFF', align: 'center', fontFace: 'Arial',
+      });
+
+      // Save the presentation
+      await pptx.writeFile({ fileName: 'presentation.pptx' });
+      alert('Presentation downloaded successfully!');
+    } catch (error) {
+      console.error('Error generating PPT:', error);
+      alert('Failed to generate presentation. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f4f7f4' }}>
+      {/* ── HEADER ── */}
+      <div style={{ borderBottom: '2px solid #d1fae5', padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 50 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#14532d,#166534)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 18, color: '#fff', boxShadow: '0 4px 12px rgba(20,83,45,0.4)' }}>P</div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 17, color: '#14532d' }}>PPT Generator</div>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Real Estate Presentation Builder</div>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowAllSlides(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 20px', background: showAllSlides ? '#14532d' : '#fff', border: '2px solid #14532d', borderRadius: 9, color: showAllSlides ? '#fff' : '#14532d', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+        >
+          <Eye size={15} /> {showAllSlides ? 'Back to Edit' : 'Preview All Slides'}
+        </button>
+      </div>
+
+      {showAllSlides ? (
+        /* ── ALL SLIDES VIEW ── */
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: '#14532d', marginBottom: 32, textAlign: 'center' }}>All 5 Slides Preview</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
+            {SLIDE_PREVIEWS.map((SlideComp, i) => (
+              <div key={i}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#14532d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: '#fff' }}>{i + 1}</div>
+                  <span style={{ fontWeight: 700, color: '#14532d', fontSize: 15 }}>{STEPS[i].title}</span>
+                </div>
+                <SlideComp />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        /* ── STEPPER FORM ── */
+        <div style={{ display: 'grid', gridTemplateColumns: '270px 1fr', minHeight: 'calc(100vh - 66px)' }}>
+          {/* ── LEFT: Step Navigator (Dark Green Sidebar) ── */}
+          <div style={{ padding: '28px 14px', background: '#14532d', borderRight: '3px solid #166534' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#86efac', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 20, paddingLeft: 8 }}>Form Steps</div>
+            {STEPS.map((s, i) => {
+              const isActive = i === step;
+              const isDone = i < step;
+              return (
+                <button
+                  key={i}
+                  onClick={() => setStep(i)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 14px', borderRadius: 10, marginBottom: 6,
+                    background: isActive ? 'rgba(255,255,255,0.18)' : isDone ? 'rgba(255,255,255,0.08)' : 'transparent',
+                    border: isActive ? '2px solid #86efac' : isDone ? '2px solid rgba(255,255,255,0.15)' : '2px solid transparent',
+                    cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left',
+                  }}
+                >
+                  <div style={{
+                    width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                    background: isActive ? '#fff' : isDone ? '#4ade80' : 'rgba(255,255,255,0.15)',
+                    border: `2px solid ${isActive ? '#86efac' : isDone ? '#4ade80' : 'rgba(255,255,255,0.25)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 800, fontSize: 13, color: isActive ? '#14532d' : '#fff',
+                  }}>
+                    {isDone ? '✓' : s.num}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: isActive ? '#fff' : isDone ? '#bbf7d0' : 'rgba(255,255,255,0.7)' }}>{s.title}</div>
+                    <div style={{ fontSize: 11, color: isActive ? '#86efac' : 'rgba(255,255,255,0.4)' }}>{s.subtitle}</div>
+                  </div>
+                </button>
+              );
+            })}
+
+            {/* Divider */}
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', margin: '20px 8px' }} />
+
+            {/* Download button */}
+            <div style={{ padding: '0 4px' }}>
+              <button
+                onClick={handleDownloadPPT}
+                disabled={isGenerating}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px', background: '#fff', border: '2px solid #86efac', borderRadius: 10, color: '#14532d', fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.25)', transition: 'all 0.2s', opacity: isGenerating ? 0.6 : 1 }}
+              >
+                <Download size={17} /> {isGenerating ? 'Generating...' : 'Download PPT'}
+              </button>
+            </div>
+          </div>
+
+          {/* ── RIGHT: Form + Preview (White) ── */}
+          <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', overflow: 'auto', background: '#fff' }}>
+            {/* Step header */}
+            <div style={{ padding: '22px 32px', borderBottom: '2px solid #d1fae5', background: '#f0fdf4' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#14532d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 17, color: '#fff', boxShadow: '0 4px 12px rgba(20,83,45,0.3)' }}>{step + 1}</div>
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#14532d', lineHeight: 1 }}>{STEPS[step].title}</h2>
+                  <p style={{ fontSize: 13, color: '#6b7280', marginTop: 3 }}>{STEPS[step].subtitle}</p>
+                </div>
+                {/* Step progress dots */}
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: 7, alignItems: 'center' }}>
+                  {STEPS.map((_, i) => (
+                    <div key={i} onClick={() => setStep(i)} style={{ width: i === step ? 28 : 9, height: 9, borderRadius: 5, background: i === step ? '#14532d' : i < step ? '#4ade80' : '#d1fae5', cursor: 'pointer', transition: 'all 0.3s' }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Form + preview split */}
+            <div style={{ display: 'grid', gridTemplateColumns: '440px 1fr', overflow: 'hidden' }}>
+              {/* Form panel */}
+              <div style={{ overflowY: 'auto', padding: '26px 30px', borderRight: '2px solid #d1fae5', background: '#fff' }}>
+                <CurrentForm />
+
+                {/* Next / Prev */}
+                <div style={{ display: 'flex', gap: 10, marginTop: 24, paddingTop: 20, borderTop: '2px solid #d1fae5' }}>
+                  {step > 0 && (
+                    <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', background: '#fff', border: '2px solid #14532d', borderRadius: 9, color: '#14532d', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+                      <ChevronLeft size={16} /> Previous
+                    </button>
+                  )}
+                  {step < STEPS.length - 1 && (
+                    <button onClick={() => setStep(s => s + 1)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', background: '#14532d', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(20,83,45,0.4)' }}>
+                      Next <ChevronRight size={16} />
+                    </button>
+                  )}
+                  {step === STEPS.length - 1 && (
+                    <button onClick={() => setShowAllSlides(true)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', background: '#14532d', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(20,83,45,0.4)' }}>
+                      <Eye size={16} /> Preview All
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Live preview panel */}
+              <div style={{ overflowY: 'auto', padding: '26px', background: '#f0fdf4', display: 'flex', flexDirection: 'column', gap: 14, borderLeft: '2px solid #d1fae5' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#14532d', animation: 'pulse 2s infinite' }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#14532d', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Live Preview — Slide {step + 1}</span>
+                </div>
+                <CurrentPreview />
+                <p style={{ fontSize: 11, color: '#6b7280', textAlign: 'center' }}>✏️ Changes reflect instantly as you type</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
