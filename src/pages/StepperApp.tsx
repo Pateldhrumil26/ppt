@@ -987,9 +987,9 @@ const SLIDE_PREVIEWS = [
   Slide6Preview,
   SlideFirstFloorPlanPreview,
   Slide7Preview,
+  SlideNearbyCommercialPreview,
   Slide8Preview,
   Slide9Preview,
-  SlideNearbyCommercialPreview,
   Slide10Preview,
   Slide11Preview,
   SlideContactPreview,
@@ -1706,9 +1706,9 @@ const STEPS = [
   { num: 7, title: 'Floor Plan (Ground)', subtitle: 'Ground layout & features', form: Step6Form },
   { num: 8, title: 'Floor Plan (First)', subtitle: 'First layout & features', form: StepFirstFloorPlanForm },
   { num: 9, title: 'Floor Plan (Second)', subtitle: 'Second layout & features', form: Step7Form },
-  { num: 10, title: 'Brand Map', subtitle: 'Company of the best', form: Step8Form },
-  { num: 11, title: 'Lifestyle Grid', subtitle: 'Everything nearby', form: Step9Form },
-  { num: 12, title: 'Nearby Ecosystem', subtitle: 'Commercial surroundings', form: StepNearbyCommercialForm },
+  { num: 10, title: 'Nearby Ecosystem', subtitle: 'Commercial surroundings', form: StepNearbyCommercialForm },
+  { num: 11, title: 'Brand Map', subtitle: 'Company of the best', form: Step8Form },
+  { num: 12, title: 'Lifestyle Grid', subtitle: 'Everything nearby', form: Step9Form },
   { num: 13, title: 'Specifications', subtitle: 'Property specs & details', form: Step10Form },
   { num: 14, title: 'Why Invest', subtitle: 'Key investment highlights', form: Step11Form },
   { num: 15, title: 'Contact Details', subtitle: "Let's build together", form: StepContactForm },
@@ -2561,6 +2561,120 @@ export default function StepperApp() {
         });
       });
 
+      // ==================== SLIDE 10: NEARBY COMMERCIAL ECOSYSTEM ====================
+      const slideNearbyCommercial = pptx.addSlide();
+      slideNearbyCommercial.background = { color: 'FFFFFF' };
+
+      const ecosystemImageData = await getImageBase64(
+        data.slideNearbyCommercial.ecosystemImage,
+        'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
+      );
+
+      if (ecosystemImageData) {
+        slideNearbyCommercial.addImage({
+          data: ecosystemImageData,
+          x: 0, y: 0, w: 10, h: 7.5,
+          sizing: { type: 'cover', w: 10, h: 7.5 },
+          transparency: 80,
+        });
+      }
+
+      // Header
+      slideNearbyCommercial.addText(data.slideNearbyCommercial.slideNumber || '10', {
+        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
+        color: 'FFFFFF', fill: { color: '3d1a6e' },
+        align: 'center', valign: 'middle',
+      });
+
+      slideNearbyCommercial.addText(data.slideNearbyCommercial.title || 'NEARBY COMMERCIAL', {
+        x: 1.15, y: 0.9, w: 8, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+      });
+      slideNearbyCommercial.addText(data.slideNearbyCommercial.subtitle || 'ECOSYSTEM', {
+        x: 1.15, y: 1.45, w: 8, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
+      });
+
+      const buildings = [
+        { name: data.slideNearbyCommercial.building1Name || 'THE WHITE CROW', distance: data.slideNearbyCommercial.building1Distance || '150 M', image: data.slideNearbyCommercial.building1Image },
+        { name: data.slideNearbyCommercial.building2Name || 'STELLAR', distance: data.slideNearbyCommercial.building2Distance || '200 M', image: data.slideNearbyCommercial.building2Image },
+        { name: data.slideNearbyCommercial.building3Name || 'TWIN LILAC', distance: data.slideNearbyCommercial.building3Distance || '500 M', image: data.slideNearbyCommercial.building3Image },
+        { name: data.slideNearbyCommercial.building4Name || 'NOVA', distance: data.slideNearbyCommercial.building4Distance || '450 M', image: data.slideNearbyCommercial.building4Image },
+        { name: data.slideNearbyCommercial.building5Name || 'ARISTA', distance: data.slideNearbyCommercial.building5Distance || '500 M', image: data.slideNearbyCommercial.building5Image },
+        { name: data.slideNearbyCommercial.building6Name || 'DOM ETERNUS', distance: data.slideNearbyCommercial.building6Distance || '700 M', image: data.slideNearbyCommercial.building6Image },
+        { name: data.slideNearbyCommercial.building7Name || 'PALLADIUM', distance: data.slideNearbyCommercial.building7Distance || '900 M', image: data.slideNearbyCommercial.building7Image },
+        { name: data.slideNearbyCommercial.building8Name || 'PENTAGON', distance: data.slideNearbyCommercial.building8Distance || '1.2 KM', image: data.slideNearbyCommercial.building8Image },
+      ];
+
+      // Draw 2 rows x 4 columns of buildings
+      const gridW = 2.1;
+      const gridH = 1.8;
+      const gridGapX = 0.2;
+      const gridGapY = 0.25;
+      const gridStartX = (10 - (4 * gridW + 3 * gridGapX)) / 2;
+
+      for (let i = 0; i < 8; i++) {
+        const b = buildings[i];
+        const colIndex = i % 4;
+        const rowIndex = Math.floor(i / 4);
+        const xPos = gridStartX + colIndex * (gridW + gridGapX);
+        const yPos = 2.6 + rowIndex * (gridH + gridGapY);
+
+        const bImgData = await getImageBase64(
+          b.image,
+          'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop'
+        );
+
+        // Background card shape
+        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
+          x: xPos, y: yPos, w: gridW, h: gridH,
+          fill: { color: 'FFFFFF' },
+          line: { color: 'e5e7eb', width: 1 },
+          rectRadius: 0.08,
+        });
+
+        // Building photo frame
+        if (bImgData) {
+          slideNearbyCommercial.addImage({
+            data: bImgData,
+            x: xPos, y: yPos, w: gridW, h: 1.1,
+            sizing: { type: 'cover', w: gridW, h: 1.1 },
+          });
+        } else {
+          slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
+            x: xPos, y: yPos, w: gridW, h: 1.1,
+            fill: { color: '3d1a6e' },
+            line: { type: 'none' },
+          });
+          slideNearbyCommercial.addText('🏢', {
+            x: xPos, y: yPos + 0.2, w: gridW, h: 0.6,
+            fontSize: 24, align: 'center', valign: 'middle',
+          });
+        }
+
+        // Overlay building name at the bottom of the photo frame
+        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
+          x: xPos, y: yPos + 0.85, w: gridW, h: 0.25,
+          fill: { color: '3d1a6e', transparency: 10 },
+          line: { type: 'none' }
+        });
+        slideNearbyCommercial.addText(b.name.toUpperCase(), {
+          x: xPos, y: yPos + 0.85, w: gridW, h: 0.25,
+          fontSize: 7, bold: true, color: 'FFFFFF',
+          align: 'center', valign: 'middle',
+        });
+
+        // Distance text box
+        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
+          x: xPos, y: yPos + 1.1, w: gridW, h: 0.7,
+          fill: { color: 'FFFFFF' },
+          line: { color: 'f97316', width: 1.5 }
+        });
+        slideNearbyCommercial.addText(b.distance, {
+          x: xPos, y: yPos + 1.1, w: gridW, h: 0.7,
+          fontSize: 12, bold: true, color: '3d1a6e',
+          align: 'center', valign: 'middle',
+        });
+      }
+
       // ==================== SLIDE 8: BRAND LOCATION MAP ====================
       const slide8 = pptx.addSlide();
       slide8.background = { color: 'FFFFFF' };
@@ -2680,120 +2794,6 @@ export default function StepperApp() {
         slide9.addText(item.label.toUpperCase(), {
           x: xPos, y: yPos + 2.8, w: cardW, h: 0.7,
           fontSize: 8, bold: true, color: 'FFFFFF',
-          align: 'center', valign: 'middle',
-        });
-      }
-
-      // ==================== SLIDE 12: NEARBY COMMERCIAL ECOSYSTEM ====================
-      const slideNearbyCommercial = pptx.addSlide();
-      slideNearbyCommercial.background = { color: 'FFFFFF' };
-
-      const ecosystemImageData = await getImageBase64(
-        data.slideNearbyCommercial.ecosystemImage,
-        'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
-      );
-
-      if (ecosystemImageData) {
-        slideNearbyCommercial.addImage({
-          data: ecosystemImageData,
-          x: 0, y: 0, w: 10, h: 7.5,
-          sizing: { type: 'cover', w: 10, h: 7.5 },
-          transparency: 80,
-        });
-      }
-
-      // Header
-      slideNearbyCommercial.addText(data.slideNearbyCommercial.slideNumber || '12', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slideNearbyCommercial.addText(data.slideNearbyCommercial.title || 'NEARBY COMMERCIAL', {
-        x: 1.15, y: 0.9, w: 8, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-      slideNearbyCommercial.addText(data.slideNearbyCommercial.subtitle || 'ECOSYSTEM', {
-        x: 1.15, y: 1.45, w: 8, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
-      });
-
-      const buildings = [
-        { name: data.slideNearbyCommercial.building1Name || 'THE WHITE CROW', distance: data.slideNearbyCommercial.building1Distance || '150 M', image: data.slideNearbyCommercial.building1Image },
-        { name: data.slideNearbyCommercial.building2Name || 'STELLAR', distance: data.slideNearbyCommercial.building2Distance || '200 M', image: data.slideNearbyCommercial.building2Image },
-        { name: data.slideNearbyCommercial.building3Name || 'TWIN LILAC', distance: data.slideNearbyCommercial.building3Distance || '500 M', image: data.slideNearbyCommercial.building3Image },
-        { name: data.slideNearbyCommercial.building4Name || 'NOVA', distance: data.slideNearbyCommercial.building4Distance || '450 M', image: data.slideNearbyCommercial.building4Image },
-        { name: data.slideNearbyCommercial.building5Name || 'ARISTA', distance: data.slideNearbyCommercial.building5Distance || '500 M', image: data.slideNearbyCommercial.building5Image },
-        { name: data.slideNearbyCommercial.building6Name || 'DOM ETERNUS', distance: data.slideNearbyCommercial.building6Distance || '700 M', image: data.slideNearbyCommercial.building6Image },
-        { name: data.slideNearbyCommercial.building7Name || 'PALLADIUM', distance: data.slideNearbyCommercial.building7Distance || '900 M', image: data.slideNearbyCommercial.building7Image },
-        { name: data.slideNearbyCommercial.building8Name || 'PENTAGON', distance: data.slideNearbyCommercial.building8Distance || '1.2 KM', image: data.slideNearbyCommercial.building8Image },
-      ];
-
-      // Draw 2 rows x 4 columns of buildings
-      const gridW = 2.1;
-      const gridH = 1.8;
-      const gridGapX = 0.2;
-      const gridGapY = 0.25;
-      const gridStartX = (10 - (4 * gridW + 3 * gridGapX)) / 2;
-
-      for (let i = 0; i < 8; i++) {
-        const b = buildings[i];
-        const colIndex = i % 4;
-        const rowIndex = Math.floor(i / 4);
-        const xPos = gridStartX + colIndex * (gridW + gridGapX);
-        const yPos = 2.6 + rowIndex * (gridH + gridGapY);
-
-        const bImgData = await getImageBase64(
-          b.image,
-          'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop'
-        );
-
-        // Background card shape
-        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos, w: gridW, h: gridH,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'e5e7eb', width: 1 },
-          rectRadius: 0.08,
-        });
-
-        // Building photo frame
-        if (bImgData) {
-          slideNearbyCommercial.addImage({
-            data: bImgData,
-            x: xPos, y: yPos, w: gridW, h: 1.1,
-            sizing: { type: 'cover', w: gridW, h: 1.1 },
-          });
-        } else {
-          slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
-            x: xPos, y: yPos, w: gridW, h: 1.1,
-            fill: { color: '3d1a6e' },
-            line: { type: 'none' },
-          });
-          slideNearbyCommercial.addText('🏢', {
-            x: xPos, y: yPos + 0.2, w: gridW, h: 0.6,
-            fontSize: 24, align: 'center', valign: 'middle',
-          });
-        }
-
-        // Overlay building name at the bottom of the photo frame
-        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos + 0.85, w: gridW, h: 0.25,
-          fill: { color: '3d1a6e', transparency: 10 },
-          line: { type: 'none' }
-        });
-        slideNearbyCommercial.addText(b.name.toUpperCase(), {
-          x: xPos, y: yPos + 0.85, w: gridW, h: 0.25,
-          fontSize: 7, bold: true, color: 'FFFFFF',
-          align: 'center', valign: 'middle',
-        });
-
-        // Distance text box
-        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos + 1.1, w: gridW, h: 0.7,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'f97316', width: 1.5 }
-        });
-        slideNearbyCommercial.addText(b.distance, {
-          x: xPos, y: yPos + 1.1, w: gridW, h: 0.7,
-          fontSize: 12, bold: true, color: '3d1a6e',
           align: 'center', valign: 'middle',
         });
       }

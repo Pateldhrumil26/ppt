@@ -355,14 +355,14 @@ const initial: AllSlides = {
     planImage: null,
   },
   slide8: {
-    slideNumber: '10',
+    slideNumber: '11',
     title: 'BRAND LOCATION MAP',
     subtitle: 'BE IN THE COMPANY OF THE BEST',
     brandList: 'FASHION & APPAREL\nJEWELLERY\nFOOD & BEVERAGE\nLIFESTYLE & OTHERS\nCORPORATE OFFICES\nSHOPPING DESTINATIONS',
     mapImage: null,
   },
   slide9: {
-    slideNumber: '11',
+    slideNumber: '12',
     title: 'LIFESTYLE AROUND YOU',
     subtitle: 'EVERYTHING NEARBY',
     label1: 'FINE DINING',
@@ -436,7 +436,7 @@ const initial: AllSlides = {
     floorPlanImage: null,
   },
   slideNearbyCommercial: {
-    slideNumber: '12',
+    slideNumber: '10',
     title: 'NEARBY COMMERCIAL',
     subtitle: 'ECOSYSTEM',
     building1Name: 'THE WHITE CROW',
