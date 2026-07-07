@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useFormData } from '../context/FormContext';
+import JsonPreviewPanel from '../components/JsonPreviewPanel';
 import {
   Shirt, ShoppingBag, Leaf, Utensils, MonitorSmartphone, ShoppingCart,
   Building2, HeartPulse, Ticket, Gamepad2, Users, DollarSign, TrendingUp,
   Landmark, Train, Bus, Plane, ShoppingBasket, MapPin, Route,
   CheckCircle2, Loader2, Clock, Calendar, Diamond, ChevronRight,
   ChevronLeft, Download, Eye, Ruler, Expand, Car, Map, Briefcase, Sun, Building, Gem, ArrowUpDown, ScanLine, BarChart3,
-  Phone, Mail, Globe,
+  Phone, Mail, Globe, Code,
+  Pill, Coffee, ChefHat, CreditCard, Dumbbell, Scissors, Sparkles,
+  Footprints, Baby, Home, Tv, BookOpen, Glasses, Stethoscope
 } from 'lucide-react';
 
 // Import pptxgenjs dynamically
@@ -19,19 +22,53 @@ const loadPptxGenJS = async () => {
   return PptxGenJS;
 };
 
+// Helper to safely get an image URL whether it's a File object or a string URL
+const getSafeImageUrl = (source: any): string | null => {
+  if (!source) return null;
+  if (typeof source === 'string') return source;
+  if (source instanceof File || source instanceof Blob) {
+    try {
+      return URL.createObjectURL(source);
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
 // ─────────────────────── SLIDE PREVIEW COMPONENTS ───────────────────────────
 
-const CATEGORIES = [
-  { name: 'Fashion', icon: Shirt },
-  { name: 'Retail', icon: ShoppingBag },
-  { name: 'Lifestyle', icon: Leaf },
-  { name: 'F&B', icon: Utensils },
-  { name: 'Electronics', icon: MonitorSmartphone },
-  { name: 'Hypermarket', icon: ShoppingCart },
-  { name: 'Corporate\nOffices', icon: Building2 },
-  { name: 'Health &\nWellness', icon: HeartPulse },
-  { name: 'Multiplex', icon: Ticket },
-  { name: 'Game Zone', icon: Gamepad2 },
+export const PREDEFINED_CATEGORIES = [
+  { id: 'cat_1', name: 'Fashion', icon: Shirt, emoji: '👗' },
+  { id: 'cat_2', name: 'Retail', icon: ShoppingBag, emoji: '🛍️' },
+  { id: 'cat_3', name: 'Lifestyle', icon: Leaf, emoji: '🌿' },
+  { id: 'cat_4', name: 'F&B', icon: Utensils, emoji: '🍽️' },
+  { id: 'cat_5', name: 'Electronics', icon: MonitorSmartphone, emoji: '💻' },
+  { id: 'cat_6', name: 'Hypermarket', icon: ShoppingCart, emoji: '🛒' },
+  { id: 'cat_7', name: 'Corporate\\nOffices', icon: Building2, emoji: '🏢' },
+  { id: 'cat_8', name: 'Health &\\nWellness', icon: HeartPulse, emoji: '❤️' },
+  { id: 'cat_9', name: 'Multiplex', icon: Ticket, emoji: '🎬' },
+  { id: 'cat_10', name: 'Game Zone', icon: Gamepad2, emoji: '🎮' },
+  { id: 'cat_11', name: 'Pharmacy', icon: Pill, emoji: '💊' },
+  { id: 'cat_12', name: 'Supermarket', icon: ShoppingBasket, emoji: '🏪' },
+  { id: 'cat_13', name: 'Cafe', icon: Coffee, emoji: '☕' },
+  { id: 'cat_14', name: 'Restaurant', icon: ChefHat, emoji: '🍝' },
+  { id: 'cat_15', name: 'ATM', icon: CreditCard, emoji: '🏧' },
+  { id: 'cat_16', name: 'Bank', icon: Landmark, emoji: '🏦' },
+  { id: 'cat_17', name: 'Gym & Fitness', icon: Dumbbell, emoji: '🏋️' },
+  { id: 'cat_18', name: 'Spa & Salon', icon: Scissors, emoji: '✂️' },
+  { id: 'cat_19', name: 'Jewelry', icon: Gem, emoji: '💎' },
+  { id: 'cat_20', name: 'Cosmetics', icon: Sparkles, emoji: '✨' },
+  { id: 'cat_21', name: 'Footwear', icon: Footprints, emoji: '👞' },
+  { id: 'cat_22', name: 'Kids Zone', icon: Baby, emoji: '🧸' },
+  { id: 'cat_23', name: 'Home Decor', icon: Home, emoji: '🛋️' },
+  { id: 'cat_24', name: 'TV & Audio', icon: Tv, emoji: '📺' },
+  { id: 'cat_25', name: 'Bookstore', icon: BookOpen, emoji: '📚' },
+  { id: 'cat_26', name: 'Opticals', icon: Glasses, emoji: '👓' },
+  { id: 'cat_27', name: 'Travel Agency', icon: Plane, emoji: '✈️' },
+  { id: 'cat_28', name: 'Clinic', icon: Stethoscope, emoji: '🩺' },
+  { id: 'cat_29', name: 'Co-Working', icon: Users, emoji: '👥' },
+  { id: 'cat_30', name: 'Auto Showroom', icon: Car, emoji: '🚗' },
 ];
 
 const SlideShell = ({ children }: { children: React.ReactNode }) => (
@@ -53,50 +90,63 @@ function Slide1Preview() {
   const theme = s.themeColor || '#3d1a6e';
   const fc = s.fontColor || '#FFFFFF';
   const bgSrc = s.backgroundImage
-    ? URL.createObjectURL(s.backgroundImage)
-    : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
-  const logoSrc = s.logo ? URL.createObjectURL(s.logo) : null;
+    ? getSafeImageUrl(s.backgroundImage)
+    : 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?q=80&w=2070&auto=format&fit=crop';
+  const logoSrc = s.logo ? getSafeImageUrl(s.logo) : null;
+
+  // Get selected category items
+  const selectedCategories = (s.selectedCategories || []).map(id => PREDEFINED_CATEGORIES.find(c => c.id === id) || PREDEFINED_CATEGORIES[0]);
 
   return (
     <SlideShell>
-      <img src={bgSrc} alt="bg" style={{ position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover' }} />
-      <div style={{ position:'absolute',inset:0, background:`linear-gradient(90deg,${theme}f0 0%,${theme}cc 40%,${theme}66 65%,transparent 100%)` }} />
-      <div style={{ position:'absolute',inset:0,display:'flex',flexDirection:'column',justifyContent:'space-between',padding:'4%',color:fc }}>
+      <div style={{ position: 'absolute', inset: 0, background: theme }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '55%' }}>
+        <img src={bgSrc} alt="bg" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(270deg,transparent 60%,${theme} 100%)` }} />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '4%', color: fc }}>
         {/* Top */}
-        <div style={{ maxWidth:'50%' }}>
-          <div style={{ display:'inline-block',background:theme,border:`2px solid ${fc}44`,borderRadius:5,padding:'3px 10px',fontWeight:800,fontSize:'clamp(9px,1.4vw,16px)',marginBottom:'3%' }}>
-            {s.slideNumber||'01'}
+        <div style={{ maxWidth: '50%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div>
+            <div style={{ display: 'inline-block', background: theme, border: `2px solid ${fc}44`, borderRadius: 5, padding: '3px 10px', fontWeight: 800, fontSize: 'clamp(9px,1.4vw,16px)', marginBottom: '3%' }}>
+              {s.slideNumber || '01'}
+            </div>
+            <h1 style={{ fontSize: 'clamp(16px,4vw,46px)', fontWeight: 900, lineHeight: 1, marginBottom: '2%', letterSpacing: '-0.02em', whiteSpace: 'pre-line' }}>
+              {s.title || 'MADHAV\nHIGHSTREET'}
+            </h1>
+            <p style={{ fontSize: 'clamp(7px,1.2vw,14px)', fontWeight: 600, opacity: 0.85, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2%', whiteSpace: 'pre-line' }}>
+              {s.subtitle || 'THE NEXT PREMIUM RETAIL DESTINATION'}
+            </p>
+            <p style={{ fontSize: 'clamp(6px,1vw,12px)', opacity: 0.7, marginBottom: '3%', whiteSpace: 'pre-line' }}>
+              {s.address || 'SINDHU BHAVAN ROAD,\nBODAKDEV, AHMEDABAD'}
+            </p>
+            <div style={{ width: '12%', height: 2, background: fc, opacity: 0.6, marginBottom: '3%' }} />
           </div>
-          <h1 style={{ fontSize:'clamp(16px,4vw,46px)',fontWeight:900,lineHeight:1,marginBottom:'2%',letterSpacing:'-0.02em',whiteSpace:'pre-line' }}>
-            {s.title||'MADHAV\nHIGHSTREET'}
-          </h1>
-          <p style={{ fontSize:'clamp(7px,1.2vw,14px)',fontWeight:600,opacity:0.85,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'2%',whiteSpace:'pre-line' }}>
-            {s.subtitle||'THE NEXT PREMIUM RETAIL DESTINATION'}
-          </p>
-          <p style={{ fontSize:'clamp(6px,1vw,12px)',opacity:0.7,marginBottom:'3%',whiteSpace:'pre-line' }}>
-            {s.address||'SINDHU BHAVAN ROAD,\nBODAKDEV, AHMEDABAD'}
-          </p>
-          <div style={{ width:'12%',height:2,background:fc,opacity:0.6,marginBottom:'3%' }} />
-          <p style={{ fontSize:'clamp(5px,0.8vw,10px)',opacity:0.55,marginBottom:'1%' }}>Presented by</p>
-          <div style={{ display:'flex',alignItems:'center',gap:8 }}>
-            {logoSrc
-              ? <img src={logoSrc} alt="logo" style={{ width:'clamp(18px,2.5vw,32px)',height:'clamp(18px,2.5vw,32px)',borderRadius:'50%',objectFit:'cover' }} />
-              : <div style={{ width:'clamp(18px,2.5vw,30px)',height:'clamp(18px,2.5vw,30px)',borderRadius:4,background:'#ff6b00',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:'clamp(7px,1vw,12px)',color:'#fff',flexShrink:0 }}>A</div>
-            }
-            <div>
-              <div style={{ fontWeight:800,fontSize:'clamp(7px,1.2vw,15px)' }}>{s.companyName||'AESTHETIC ARC'}</div>
-              <div style={{ fontSize:'clamp(5px,0.75vw,9px)',opacity:0.55 }}>{s.companyTagline||'PROPERTY LEASING COMPANY'}</div>
+
+          <div style={{ flex: 1 }} />
+
+          <div style={{ marginBottom: '3%' }}>
+            <p style={{ fontSize: 'clamp(5px,0.8vw,10px)', opacity: 0.55, marginBottom: '1%' }}>Presented by</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {logoSrc
+                ? <img src={logoSrc} alt="logo" style={{ width: 'clamp(24px,3.5vw,45px)', height: 'clamp(24px,3.5vw,45px)', objectFit: 'contain' }} />
+                : <div style={{ width: 'clamp(24px,3.5vw,45px)', height: 'clamp(24px,3.5vw,45px)', borderRadius: 4, background: '#ff6b00', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 'clamp(7px,1vw,12px)', color: '#fff', flexShrink: 0 }}>A</div>
+              }
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 'clamp(7px,1.2vw,15px)' }}>{s.companyName || 'AESTHETIC ARC'}</div>
+                <div style={{ fontSize: 'clamp(5px,0.75vw,9px)', opacity: 0.55 }}>{s.companyTagline || 'PROPERTY LEASING COMPANY'}</div>
+              </div>
             </div>
           </div>
         </div>
         {/* Bottom categories */}
-        <div style={{ display:'grid',gridTemplateColumns:'repeat(10,1fr)',gap:'clamp(2px,0.4vw,5px)' }}>
-          {CATEGORIES.map((c,i)=>{
-            const Icon=c.icon;
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 'clamp(2px,0.5vw,6px)' }}>
+          {selectedCategories.map((c, i) => {
+            const Icon = c.icon;
             return (
-              <div key={i} style={{ background:`${fc}18`,border:`1px solid ${fc}2f`,borderRadius:5,padding:'clamp(3px,0.8vw,8px) clamp(1px,0.3vw,4px)',display:'flex',flexDirection:'column',alignItems:'center',gap:'clamp(1px,0.3vw,3px)' }}>
-                <Icon size="clamp(8px,1.8vw,20px)" strokeWidth={1.5} style={{ color:fc }} />
-                <span style={{ fontSize:'clamp(3px,0.6vw,7px)',color:fc,fontWeight:600,textAlign:'center',lineHeight:1.2,whiteSpace:'pre-line' }}>{c.name}</span>
+              <div key={i} style={{ background: `${fc}18`, border: `1px solid ${fc}2f`, borderRadius: 5, padding: 'clamp(4px,1vw,10px) clamp(2px,0.5vw,5px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(2px,0.4vw,4px)' }}>
+                <Icon size={24} strokeWidth={1.5} style={{ color: fc, width: 'clamp(10px,2vw,24px)', height: 'clamp(10px,2vw,24px)' }} />
+                <span style={{ fontSize: 'clamp(4px,0.7vw,8px)', color: fc, fontWeight: 600, textAlign: 'center', lineHeight: 1.2, whiteSpace: 'pre-line' }}>{c.name.replace(/\\n/g, '\n')}</span>
               </div>
             );
           })}
@@ -107,66 +157,66 @@ function Slide1Preview() {
 }
 
 function Slide2Preview() {
-  const { data:{ slide2:s } } = useFormData();
-  const hc='#3d1a6e', ac='#f97316';
+  const { data: { slide2: s } } = useFormData();
+  const hc = '#3d1a6e', ac = '#f97316';
   const imgSrc = s.cityImage
-    ? URL.createObjectURL(s.cityImage)
+    ? getSafeImageUrl(s.cityImage)
     : 'https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=2070&auto=format&fit=crop';
 
   const stats = [
-    { icon:Users, v:s.population||'90.6 Lakh+', l:'Population' },
-    { icon:DollarSign, v:s.gdp||'$135 Billion+', l:'GDP' },
-    { icon:TrendingUp, v:s.gdpGrowth||'6.7%+', l:'GDP Growth' },
-    { icon:Landmark, v:'World\'s 1st', l:s.worldFirst||'Heritage City With BRTS', hi:true },
-    { icon:Train, v:s.metroKm||'40 KM+', l:'Metro Network' },
-    { icon:Bus, v:s.brtsKm||'160 KM+', l:'BRTS Network' },
-    { icon:Plane, v:s.dailyFlights||'130+', l:'Daily Flights' },
-    { icon:ShoppingBasket, v:'Top 3', l:s.retailRank||'Fastest Growing Retail Market', hi:true },
+    { icon: Users, v: s.population || '90.6 Lakh+', l: 'Population' },
+    { icon: DollarSign, v: s.gdp || '$135 Billion+', l: 'GDP' },
+    { icon: TrendingUp, v: s.gdpGrowth || '6.7%+', l: 'GDP Growth' },
+    { icon: Landmark, v: 'World\'s 1st', l: s.worldFirst || 'Heritage City With BRTS', hi: true },
+    { icon: Train, v: s.metroKm || '40 KM+', l: 'Metro Network' },
+    { icon: Bus, v: s.brtsKm || '160 KM+', l: 'BRTS Network' },
+    { icon: Plane, v: s.dailyFlights || '130+', l: 'Daily Flights' },
+    { icon: ShoppingBasket, v: 'Top 3', l: s.retailRank || 'Fastest Growing Retail Market', hi: true },
   ];
 
-  const infraLines = (s.infrastructure||'').split('\n').filter(Boolean);
-  const half = Math.ceil(infraLines.length/2);
-  const col1 = infraLines.slice(0,half);
+  const infraLines = (s.infrastructure || '').split('\n').filter(Boolean);
+  const half = Math.ceil(infraLines.length / 2);
+  const col1 = infraLines.slice(0, half);
   const col2 = infraLines.slice(half);
 
   return (
     <SlideShell>
-      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
+      <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
       {/* Right image */}
-      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'45%' }}>
-        <img src={imgSrc} alt="city" style={{ width:'100%',height:'100%',objectFit:'cover' }} />
-        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 40%,white 100%)' }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '45%' }}>
+        <img src={imgSrc} alt="city" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,transparent 40%,white 100%)' }} />
       </div>
       {/* Left content */}
-      <div style={{ position:'absolute',inset:0,padding:'4%',paddingRight:'50%',display:'flex',flexDirection:'column',justifyContent:'flex-start' }}>
+      <div style={{ position: 'absolute', inset: 0, padding: '4%', paddingRight: '50%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
         {/* Header */}
-        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'3%' }}>
-          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>02</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '3%' }}>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>02</div>
           <div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.4vw,28px)',color:hc,lineHeight:1 }}>{s.cityName||'AHMEDABAD'}</div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.4vw,28px)',color:ac,lineHeight:1 }}>AT A GLANCE</div>
-            <div style={{ fontSize:'clamp(5px,0.85vw,10px)',color:'#555',marginTop:2 }}>A Thriving City. A Growing Opportunity.</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1 }}>{s.cityName || 'AHMEDABAD'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1 }}>AT A GLANCE</div>
+            <div style={{ fontSize: 'clamp(5px,0.85vw,10px)', color: '#555', marginTop: 2 }}>A Thriving City. A Growing Opportunity.</div>
           </div>
         </div>
         {/* Stats */}
-        <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'clamp(2px,0.5vw,6px)',marginBottom:'3%' }}>
-          {stats.map((st,i)=>{
-            const Icon=st.icon;
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 'clamp(2px,0.5vw,6px)', marginBottom: '3%' }}>
+          {stats.map((st, i) => {
+            const Icon = st.icon;
             return (
-              <div key={i} style={{ border:`1px solid ${(st as any).hi?hc:'#e5e7eb'}`,borderRadius:5,padding:'clamp(3px,0.7vw,8px)',background:(st as any).hi?`${hc}09`:'#fff' }}>
-                <Icon size="clamp(7px,1.2vw,14px)" style={{ color:hc,opacity:0.7 }} strokeWidth={1.5} />
-                <div style={{ fontWeight:800,fontSize:'clamp(7px,1.2vw,14px)',color:hc,lineHeight:1.2,marginTop:2 }}>{st.v}</div>
-                <div style={{ fontSize:'clamp(4px,0.65vw,8px)',color:'#666',lineHeight:1.3 }}>{st.l}</div>
+              <div key={i} style={{ border: `1px solid ${(st as any).hi ? hc : '#e5e7eb'}`, borderRadius: 5, padding: 'clamp(3px,0.7vw,8px)', background: (st as any).hi ? `${hc}09` : '#fff' }}>
+                <Icon size="clamp(7px,1.2vw,14px)" style={{ color: hc, opacity: 0.7 }} strokeWidth={1.5} />
+                <div style={{ fontWeight: 800, fontSize: 'clamp(7px,1.2vw,14px)', color: hc, lineHeight: 1.2, marginTop: 2 }}>{st.v}</div>
+                <div style={{ fontSize: 'clamp(4px,0.65vw,8px)', color: '#666', lineHeight: 1.3 }}>{st.l}</div>
               </div>
             );
           })}
         </div>
         {/* Infrastructure */}
         <div>
-          <div style={{ fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:hc,fontSize:'clamp(5px,0.8vw,10px)',marginBottom:'1%' }}>UPCOMING INFRASTRUCTURE</div>
-          <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1px 12px' }}>
-            {col1.map((t,i)=><div key={`a${i}`} style={{ fontSize:'clamp(4px,0.7vw,8px)',color:'#374151',display:'flex',gap:3,alignItems:'center' }}><span style={{ color:hc,fontWeight:700 }}>•</span>{t}</div>)}
-            {col2.map((t,i)=><div key={`b${i}`} style={{ fontSize:'clamp(4px,0.7vw,8px)',color:'#374151',display:'flex',gap:3,alignItems:'center' }}><span style={{ color:hc,fontWeight:700 }}>•</span>{t}</div>)}
+          <div style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: hc, fontSize: 'clamp(5px,0.8vw,10px)', marginBottom: '1%' }}>UPCOMING INFRASTRUCTURE</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px 12px' }}>
+            {col1.map((t, i) => <div key={`a${i}`} style={{ fontSize: 'clamp(4px,0.7vw,8px)', color: '#374151', display: 'flex', gap: 3, alignItems: 'center' }}><span style={{ color: hc, fontWeight: 700 }}>•</span>{t}</div>)}
+            {col2.map((t, i) => <div key={`b${i}`} style={{ fontSize: 'clamp(4px,0.7vw,8px)', color: '#374151', display: 'flex', gap: 3, alignItems: 'center' }}><span style={{ color: hc, fontWeight: 700 }}>•</span>{t}</div>)}
           </div>
         </div>
       </div>
@@ -175,55 +225,55 @@ function Slide2Preview() {
 }
 
 function Slide3Preview() {
-  const { data:{ slide3:s } } = useFormData();
-  const hc='#3d1a6e', ac='#f97316';
+  const { data: { slide3: s } } = useFormData();
+  const hc = '#3d1a6e', ac = '#f97316';
   const imgSrc = s.mapImage
-    ? URL.createObjectURL(s.mapImage)
+    ? getSafeImageUrl(s.mapImage)
     : 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop';
 
   const points = [
-    { icon:MapPin, t:s.point1Title||'2 Mins from SG Highway', d:s.point1Desc||'Excellent Connectivity' },
-    { icon:Route, t:s.point2Title||'Easy Access to SP Ring Road', d:s.point2Desc||'' },
-    { icon:Building2, t:s.point3Title||'Surrounded by Premium', d:s.point3Desc||'Residential & Commercial Developments' },
+    { icon: MapPin, t: s.point1Title || '2 Mins from SG Highway', d: s.point1Desc || 'Excellent Connectivity' },
+    { icon: Route, t: s.point2Title || 'Easy Access to SP Ring Road', d: s.point2Desc || '' },
+    { icon: Building2, t: s.point3Title || 'Surrounded by Premium', d: s.point3Desc || 'Residential & Commercial Developments' },
   ];
 
-  const titleLines = (s.locationTitle||'PREMIUM LOCATION\nTHAT CONNECTS EVERYTHING').split('\n');
+  const titleLines = (s.locationTitle || 'PREMIUM LOCATION\nTHAT CONNECTS EVERYTHING').split('\n');
 
   return (
     <SlideShell>
-      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
-      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'56%' }}>
-        <img src={imgSrc} alt="map" style={{ width:'100%',height:'100%',objectFit:'cover',opacity:0.75 }} />
-        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 35%,white 100%)' }} />
+      <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '56%' }}>
+        <img src={imgSrc} alt="map" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,transparent 35%,white 100%)' }} />
       </div>
-      <div style={{ position:'absolute',inset:0,padding:'5%',paddingRight:'52%',display:'flex',flexDirection:'column',justifyContent:'center' }}>
-        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'4%' }}>
-          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>03</div>
+      <div style={{ position: 'absolute', inset: 0, padding: '5%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '4%' }}>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>03</div>
           <div>
-            <div style={{ fontWeight:900,fontSize:'clamp(10px,2.2vw,26px)',color:hc,lineHeight:1.1 }}>{titleLines[0]||'PREMIUM LOCATION'}</div>
-            <div style={{ fontWeight:900,fontSize:'clamp(10px,2.2vw,26px)',color:ac,lineHeight:1.1 }}>{titleLines[1]||'THAT CONNECTS EVERYTHING'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(10px,2.2vw,26px)', color: hc, lineHeight: 1.1 }}>{titleLines[0] || 'PREMIUM LOCATION'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(10px,2.2vw,26px)', color: ac, lineHeight: 1.1 }}>{titleLines[1] || 'THAT CONNECTS EVERYTHING'}</div>
           </div>
         </div>
-        <div style={{ marginBottom:'4%',fontSize:'clamp(6px,1vw,12px)',color:'#374151',fontWeight:500,whiteSpace:'pre-line' }}>
-          {s.address||'Sindhu Bhavan Road,\nBodakdev, Ahmedabad'}
+        <div style={{ marginBottom: '4%', fontSize: 'clamp(6px,1vw,12px)', color: '#374151', fontWeight: 500, whiteSpace: 'pre-line' }}>
+          {s.address || 'Sindhu Bhavan Road,\nBodakdev, Ahmedabad'}
         </div>
-        <div style={{ display:'flex',flexDirection:'column',gap:'clamp(5px,1vw,12px)',marginBottom:'5%' }}>
-          {points.map((p,i)=>{
-            const Icon=p.icon;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(5px,1vw,12px)', marginBottom: '5%' }}>
+          {points.map((p, i) => {
+            const Icon = p.icon;
             return (
-              <div key={i} style={{ display:'flex',alignItems:'flex-start',gap:8 }}>
-                <div style={{ width:'clamp(12px,2vw,24px)',height:'clamp(12px,2vw,24px)',border:`1.5px solid ${ac}`,borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
-                  <Icon size="clamp(6px,1vw,12px)" style={{ color:ac }} strokeWidth={2} />
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ width: 'clamp(12px,2vw,24px)', height: 'clamp(12px,2vw,24px)', border: `1.5px solid ${ac}`, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size="clamp(6px,1vw,12px)" style={{ color: ac }} strokeWidth={2} />
                 </div>
                 <div>
-                  <div style={{ fontWeight:700,color:hc,fontSize:'clamp(6px,1.1vw,13px)' }}>{p.t}</div>
-                  {p.d&&<div style={{ fontSize:'clamp(4px,0.8vw,9px)',color:'#6b7280' }}>{p.d}</div>}
+                  <div style={{ fontWeight: 700, color: hc, fontSize: 'clamp(6px,1.1vw,13px)' }}>{p.t}</div>
+                  {p.d && <div style={{ fontSize: 'clamp(4px,0.8vw,9px)', color: '#6b7280' }}>{p.d}</div>}
                 </div>
               </div>
             );
           })}
         </div>
-        <button style={{ background:ac,color:'#fff',fontWeight:700,fontSize:'clamp(5px,0.9vw,11px)',padding:'clamp(4px,0.8vw,9px) clamp(8px,1.5vw,18px)',borderRadius:30,border:'none',display:'flex',alignItems:'center',gap:5,cursor:'pointer',width:'fit-content' }}>
+        <button style={{ background: ac, color: '#fff', fontWeight: 700, fontSize: 'clamp(5px,0.9vw,11px)', padding: 'clamp(4px,0.8vw,9px) clamp(8px,1.5vw,18px)', borderRadius: 30, border: 'none', display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', width: 'fit-content' }}>
           <MapPin size="clamp(7px,1vw,12px)" /> VIEW ON GOOGLE MAPS
         </button>
       </div>
@@ -232,49 +282,49 @@ function Slide3Preview() {
 }
 
 function Slide4Preview() {
-  const { data:{ slide4:s } } = useFormData();
-  const hc='#3d1a6e', ac='#f97316';
+  const { data: { slide4: s } } = useFormData();
+  const hc = '#3d1a6e', ac = '#f97316';
   const imgSrc = s.projectImage
-    ? URL.createObjectURL(s.projectImage)
+    ? getSafeImageUrl(s.projectImage)
     : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
 
   const features = [
-    { icon:Building2, t:s.feature1Title||'Premium Corner Plot', d:s.feature1Desc||'with Wide Frontage' },
-    { icon:Landmark, t:s.feature2Title||'Modern Retail Architecture', d:s.feature2Desc||'with Maximum Visibility' },
-    { icon:Diamond, t:s.feature3Title||'Designed for Premium Brands', d:s.feature3Desc||'& High Footfall' },
-    { icon:Calendar, t:s.possessionLabel||'Possession', d:s.possessionDate||'March 2027' },
+    { icon: Building2, t: s.feature1Title || 'Premium Corner Plot', d: s.feature1Desc || 'with Wide Frontage' },
+    { icon: Landmark, t: s.feature2Title || 'Modern Retail Architecture', d: s.feature2Desc || 'with Maximum Visibility' },
+    { icon: Diamond, t: s.feature3Title || 'Designed for Premium Brands', d: s.feature3Desc || '& High Footfall' },
+    { icon: Calendar, t: s.possessionLabel || 'Possession', d: s.possessionDate || 'March 2027' },
   ];
 
   return (
     <SlideShell>
-      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
-      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'56%' }}>
-        <img src={imgSrc} alt="project" style={{ width:'100%',height:'100%',objectFit:'cover' }} />
-        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 40%,white 100%)' }} />
-        <div style={{ position:'absolute',bottom:'6%',right:'4%',background:hc,color:'#fff',padding:'clamp(5px,0.9vw,10px) clamp(8px,1.4vw,16px)',borderRadius:7,textAlign:'center' }}>
-          <div style={{ fontSize:'clamp(4px,0.6vw,7px)',letterSpacing:'0.12em',opacity:0.65,marginBottom:2 }}>EXPECTED POSSESSION</div>
-          <div style={{ fontSize:'clamp(8px,1.5vw,17px)',fontWeight:900,letterSpacing:'0.05em' }}>{(s.possessionDate||'MARCH 2027').toUpperCase()}</div>
+      <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '56%' }}>
+        <img src={imgSrc} alt="project" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,transparent 40%,white 100%)' }} />
+        <div style={{ position: 'absolute', bottom: '6%', right: '4%', background: hc, color: '#fff', padding: 'clamp(5px,0.9vw,10px) clamp(8px,1.4vw,16px)', borderRadius: 7, textAlign: 'center' }}>
+          <div style={{ fontSize: 'clamp(4px,0.6vw,7px)', letterSpacing: '0.12em', opacity: 0.65, marginBottom: 2 }}>EXPECTED POSSESSION</div>
+          <div style={{ fontSize: 'clamp(8px,1.5vw,17px)', fontWeight: 900, letterSpacing: '0.05em' }}>{(s.possessionDate || 'MARCH 2027').toUpperCase()}</div>
         </div>
       </div>
-      <div style={{ position:'absolute',inset:0,padding:'5%',paddingRight:'52%',display:'flex',flexDirection:'column',justifyContent:'center' }}>
-        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'5%' }}>
-          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>04</div>
+      <div style={{ position: 'absolute', inset: 0, padding: '5%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '5%' }}>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>04</div>
           <div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:hc,lineHeight:1.1 }}>PROJECT</div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:ac,lineHeight:1.1 }}>SHOWCASE</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: hc, lineHeight: 1.1 }}>PROJECT</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: ac, lineHeight: 1.1 }}>SHOWCASE</div>
           </div>
         </div>
-        <div style={{ display:'flex',flexDirection:'column',gap:'clamp(7px,1.3vw,16px)' }}>
-          {features.map((f,i)=>{
-            const Icon=f.icon;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(7px,1.3vw,16px)' }}>
+          {features.map((f, i) => {
+            const Icon = f.icon;
             return (
-              <div key={i} style={{ display:'flex',alignItems:'flex-start',gap:8 }}>
-                <div style={{ width:'clamp(12px,2vw,24px)',height:'clamp(12px,2vw,24px)',border:`1.5px solid ${ac}`,borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
-                  <Icon size="clamp(6px,1vw,12px)" style={{ color:ac }} strokeWidth={2} />
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ width: 'clamp(12px,2vw,24px)', height: 'clamp(12px,2vw,24px)', border: `1.5px solid ${ac}`, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size="clamp(6px,1vw,12px)" style={{ color: ac }} strokeWidth={2} />
                 </div>
                 <div>
-                  <div style={{ fontWeight:700,color:hc,fontSize:'clamp(6px,1.1vw,13px)' }}>{f.t}</div>
-                  <div style={{ fontSize:'clamp(4px,0.8vw,9px)',color:'#6b7280' }}>{f.d}</div>
+                  <div style={{ fontWeight: 700, color: hc, fontSize: 'clamp(6px,1.1vw,13px)' }}>{f.t}</div>
+                  <div style={{ fontSize: 'clamp(4px,0.8vw,9px)', color: '#6b7280' }}>{f.d}</div>
                 </div>
               </div>
             );
@@ -286,49 +336,49 @@ function Slide4Preview() {
 }
 
 function Slide5Preview() {
-  const { data:{ slide5:s } } = useFormData();
-  const hc='#3d1a6e', ac='#f97316';
+  const { data: { slide5: s } } = useFormData();
+  const hc = '#3d1a6e', ac = '#f97316';
   const imgSrc = s.constructionImage
-    ? URL.createObjectURL(s.constructionImage)
+    ? getSafeImageUrl(s.constructionImage)
     : 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2070&auto=format&fit=crop';
 
   const items = [
-    { icon:CheckCircle2, t:s.progress1Title||'Foundation', st:s.progress1Status||'Completed' },
-    { icon:Loader2, t:s.progress2Title||'Structure', st:s.progress2Status||'In Progress' },
-    { icon:Clock, t:s.progress3Title||'Finishing', st:s.progress3Status||'Ahead' },
-    { icon:Calendar, t:s.progress4Title||'Possession', st:s.progress4Status||'March 2027' },
+    { icon: CheckCircle2, t: s.progress1Title || 'Foundation', st: s.progress1Status || 'Completed' },
+    { icon: Loader2, t: s.progress2Title || 'Structure', st: s.progress2Status || 'In Progress' },
+    { icon: Clock, t: s.progress3Title || 'Finishing', st: s.progress3Status || 'Ahead' },
+    { icon: Calendar, t: s.progress4Title || 'Possession', st: s.progress4Status || 'March 2027' },
   ];
 
   return (
     <SlideShell>
-      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
-      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'56%' }}>
-        <img src={imgSrc} alt="construction" style={{ width:'100%',height:'100%',objectFit:'cover' }} />
-        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 40%,white 100%)' }} />
-        <div style={{ position:'absolute',bottom:'6%',right:'4%',background:hc,color:'#fff',padding:'clamp(5px,0.9vw,10px) clamp(8px,1.4vw,16px)',borderRadius:7,textAlign:'center' }}>
-          <div style={{ fontSize:'clamp(4px,0.6vw,7px)',letterSpacing:'0.12em',opacity:0.65,marginBottom:2 }}>CURRENT STATUS</div>
-          <div style={{ fontSize:'clamp(8px,1.5vw,17px)',fontWeight:900,letterSpacing:'0.05em' }}>{(s.currentStatus||'JUNE 2026').toUpperCase()}</div>
+      <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '56%' }}>
+        <img src={imgSrc} alt="construction" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,transparent 40%,white 100%)' }} />
+        <div style={{ position: 'absolute', bottom: '6%', right: '4%', background: hc, color: '#fff', padding: 'clamp(5px,0.9vw,10px) clamp(8px,1.4vw,16px)', borderRadius: 7, textAlign: 'center' }}>
+          <div style={{ fontSize: 'clamp(4px,0.6vw,7px)', letterSpacing: '0.12em', opacity: 0.65, marginBottom: 2 }}>CURRENT STATUS</div>
+          <div style={{ fontSize: 'clamp(8px,1.5vw,17px)', fontWeight: 900, letterSpacing: '0.05em' }}>{(s.currentStatus || 'JUNE 2026').toUpperCase()}</div>
         </div>
       </div>
-      <div style={{ position:'absolute',inset:0,padding:'5%',paddingRight:'52%',display:'flex',flexDirection:'column',justifyContent:'center' }}>
-        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'5%' }}>
-          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>05</div>
+      <div style={{ position: 'absolute', inset: 0, padding: '5%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '5%' }}>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>05</div>
           <div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:hc,lineHeight:1.1 }}>CONSTRUCTION</div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:ac,lineHeight:1.1 }}>PROGRESS</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: hc, lineHeight: 1.1 }}>CONSTRUCTION</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: ac, lineHeight: 1.1 }}>PROGRESS</div>
           </div>
         </div>
-        <div style={{ display:'flex',flexDirection:'column',gap:'clamp(7px,1.3vw,16px)' }}>
-          {items.map((it,i)=>{
-            const Icon=it.icon;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(7px,1.3vw,16px)' }}>
+          {items.map((it, i) => {
+            const Icon = it.icon;
             return (
-              <div key={i} style={{ display:'flex',alignItems:'flex-start',gap:8 }}>
-                <div style={{ width:'clamp(12px,2vw,24px)',height:'clamp(12px,2vw,24px)',border:`1.5px solid ${ac}`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
-                  <Icon size="clamp(6px,1vw,12px)" style={{ color:ac }} strokeWidth={2} />
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ width: 'clamp(12px,2vw,24px)', height: 'clamp(12px,2vw,24px)', border: `1.5px solid ${ac}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size="clamp(6px,1vw,12px)" style={{ color: ac }} strokeWidth={2} />
                 </div>
                 <div>
-                  <div style={{ fontWeight:700,color:hc,fontSize:'clamp(6px,1.1vw,13px)' }}>{it.t}</div>
-                  <div style={{ fontSize:'clamp(4px,0.8vw,9px)',color:'#6b7280' }}>{it.st}</div>
+                  <div style={{ fontWeight: 700, color: hc, fontSize: 'clamp(6px,1.1vw,13px)' }}>{it.t}</div>
+                  <div style={{ fontSize: 'clamp(4px,0.8vw,9px)', color: '#6b7280' }}>{it.st}</div>
                 </div>
               </div>
             );
@@ -343,8 +393,8 @@ function Slide6Preview() {
   const { data: { slide6: s } } = useFormData();
   const hc = '#3d1a6e', ac = '#f97316';
   const imgSrc = s.planImage
-    ? URL.createObjectURL(s.planImage)
-    : 'https://images.unsplash.com/photo-1598928506311-c55dd1b4eb64?q=80&w=800&auto=format&fit=crop';
+    ? getSafeImageUrl(s.planImage)
+    : 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=800&auto=format&fit=crop';
 
   const features = [
     { icon: Ruler, label: s.floorHeightLabel || 'Floor Height', val: s.floorHeightValue || '12\'5"' },
@@ -370,7 +420,7 @@ function Slide6Preview() {
             <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || 'RETAIL SPACES'}</div>
           </div>
         </div>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(5px,1vw,12px)' }}>
           {features.map((f, i) => {
             const Icon = f.icon;
@@ -396,8 +446,8 @@ function Slide7Preview() {
   const { data: { slide7: s } } = useFormData();
   const hc = '#3d1a6e', ac = '#f97316';
   const imgSrc = s.planImage
-    ? URL.createObjectURL(s.planImage)
-    : 'https://images.unsplash.com/photo-1598928506311-c55dd1b4eb64?q=80&w=800&auto=format&fit=crop';
+    ? getSafeImageUrl(s.planImage)
+    : 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=800&auto=format&fit=crop';
 
   const features = [
     { icon: Ruler, label: s.floorHeightLabel || 'Floor Height', val: s.floorHeightValue || '9\'5"' },
@@ -423,7 +473,7 @@ function Slide7Preview() {
             <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || 'RETAIL SPACES'}</div>
           </div>
         </div>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(5px,1vw,12px)' }}>
           {features.map((f, i) => {
             const Icon = f.icon;
@@ -449,7 +499,7 @@ function Slide8Preview() {
   const { data: { slide8: s } } = useFormData();
   const hc = '#3d1a6e', ac = '#f97316';
   const imgSrc = s.mapImage
-    ? URL.createObjectURL(s.mapImage)
+    ? getSafeImageUrl(s.mapImage)
     : 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop';
 
   const brandLines = (s.brandList || '').split('\n').filter(Boolean);
@@ -472,7 +522,7 @@ function Slide8Preview() {
             <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || 'BE IN THE COMPANY OF THE BEST'}</div>
           </div>
         </div>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px,0.8vw,10px)' }}>
           {brandLines.map((line, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -497,26 +547,26 @@ function Slide8Preview() {
 function Slide9Preview() {
   const { data: { slide9: s } } = useFormData();
   const hc = '#3d1a6e', ac = '#f97316';
-  
+
   const cards = [
     {
-      img: s.img1 ? URL.createObjectURL(s.img1) : 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=500&auto=format&fit=crop',
+      img: s.img1 ? getSafeImageUrl(s.img1) : 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=500&auto=format&fit=crop',
       label: s.label1 || 'FINE DINING'
     },
     {
-      img: s.img2 ? URL.createObjectURL(s.img2) : 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=500&auto=format&fit=crop',
+      img: s.img2 ? getSafeImageUrl(s.img2) : 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=500&auto=format&fit=crop',
       label: s.label2 || 'SHOPPING'
     },
     {
-      img: s.img3 ? URL.createObjectURL(s.img3) : 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&auto=format&fit=crop',
+      img: s.img3 ? getSafeImageUrl(s.img3) : 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&auto=format&fit=crop',
       label: s.label3 || 'FITNESS'
     },
     {
-      img: s.img4 ? URL.createObjectURL(s.img4) : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop',
+      img: s.img4 ? getSafeImageUrl(s.img4) : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop',
       label: s.label4 || 'ENTERTAINMENT'
     },
     {
-      img: s.img5 ? URL.createObjectURL(s.img5) : 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=500&auto=format&fit=crop',
+      img: s.img5 ? getSafeImageUrl(s.img5) : 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=500&auto=format&fit=crop',
       label: s.label5 || 'RESIDENTIAL CATCHMENT'
     }
   ];
@@ -575,7 +625,7 @@ function Slide10Preview() {
   ];
 
   const qrSrc = s.qrImage
-    ? URL.createObjectURL(s.qrImage)
+    ? getSafeImageUrl(s.qrImage)
     : `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(s.qrUrl || 'https://maps.google.com')}`;
 
   return (
@@ -713,7 +763,7 @@ function Slide11Preview() {
 function SlideSiteVisibilityPreview() {
   const { data: { slideSiteVisibility: s } } = useFormData();
   const hc = '#3d1a6e', ac = '#f97316';
-  
+
   const viewImages = [
     { label: 'LEFT VIEW', image: s.leftViewImage },
     { label: 'FRONT VIEW', image: s.frontViewImage },
@@ -739,7 +789,7 @@ function SlideSiteVisibilityPreview() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'clamp(8px,1.5vw,20px)', marginTop: '2%' }}>
           {viewImages.map((view, i) => {
-            const imgSrc = view.image ? URL.createObjectURL(view.image) : defaultImages[i];
+            const imgSrc = view.image ? getSafeImageUrl(view.image) : defaultImages[i];
             return (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(4px,0.8vw,10px)' }}>
                 <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
@@ -759,7 +809,7 @@ function SlideSiteVisibilityPreview() {
 function SlideFirstFloorPlanPreview() {
   const { data: { slideFirstFloorPlan: s } } = useFormData();
   const hc = '#3d1a6e', ac = '#f97316';
-  const floorPlanSrc = s.floorPlanImage ? URL.createObjectURL(s.floorPlanImage) : null;
+  const floorPlanSrc = s.floorPlanImage ? getSafeImageUrl(s.floorPlanImage) : null;
 
   const features = [
     { icon: '📏', title: s.feature1Title || 'Floor Height', desc: s.feature1Desc || '10\'5"' },
@@ -816,7 +866,7 @@ function SlideFirstFloorPlanPreview() {
 function SlideNearbyCommercialPreview() {
   const { data: { slideNearbyCommercial: s } } = useFormData();
   const hc = '#3d1a6e', ac = '#f97316';
-  const ecosystemSrc = s.ecosystemImage ? URL.createObjectURL(s.ecosystemImage) : null;
+  const ecosystemSrc = s.ecosystemImage ? getSafeImageUrl(s.ecosystemImage) : null;
 
   const buildings = [
     { name: s.building1Name || 'THE WHITE CROW', distance: s.building1Distance || '150 M', image: s.building1Image },
@@ -835,7 +885,7 @@ function SlideNearbyCommercialPreview() {
       {ecosystemSrc && (
         <img src={ecosystemSrc} alt="Ecosystem" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }} />
       )}
-      
+
       {/* Content */}
       <div style={{ position: 'absolute', inset: 0, padding: '5%', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
@@ -851,7 +901,7 @@ function SlideNearbyCommercialPreview() {
         {/* Buildings grid - 2 rows x 4 columns */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'clamp(8px,1.5vw,20px)', marginTop: 'auto', marginBottom: 'auto' }}>
           {buildings.map((building, i) => {
-            const imageSrc = building.image ? URL.createObjectURL(building.image) : null;
+            const imageSrc = building.image ? getSafeImageUrl(building.image) : null;
             return (
               <div key={i} style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                 {/* Building image or placeholder */}
@@ -881,13 +931,13 @@ function SlideNearbyCommercialPreview() {
 function SlideContactPreview() {
   const { data: { slideContact: s } } = useFormData();
   const hc = '#3d1a6e', ac = '#f97316';
-  const logoSrc = s.companyLogo ? URL.createObjectURL(s.companyLogo) : null;
+  const logoSrc = s.companyLogo ? getSafeImageUrl(s.companyLogo) : null;
 
   return (
     <SlideShell>
       {/* Dark purple background */}
       <div style={{ position: 'absolute', inset: 0, background: '#1a0a2e' }} />
-      
+
       {/* Large background logo/icon watermark */}
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.05 }}>
         <Building2 size="300" strokeWidth={1} style={{ color: '#fff' }} />
@@ -895,18 +945,18 @@ function SlideContactPreview() {
 
       {/* Content */}
       <div style={{ position: 'absolute', inset: 0, color: '#fff' }}>
-        
+
         {/* Top Left: Slide number badge */}
-        <div style={{ 
+        <div style={{
           position: 'absolute', top: '12%', left: '8%',
           background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(9px,1.2vw,14px)',
           padding: '4px 10px', borderRadius: 4
         }}>
           {s.slideNumber || '15'}
         </div>
-        
+
         {/* Main heading */}
-        <h1 style={{ 
+        <h1 style={{
           position: 'absolute', top: '25%', left: '8%', width: '48%',
           fontSize: 'clamp(20px,4.2vw,48px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1,
           whiteSpace: 'pre-line'
@@ -932,7 +982,7 @@ function SlideContactPreview() {
         {/* Right: Contact details */}
         <div style={{ position: 'absolute', top: '20%', right: '8%', width: '38%', display: 'flex', flexDirection: 'column', gap: 'clamp(12px,2vw,24px)' }}>
           <div style={{ fontSize: 'clamp(8px,1.1vw,14px)', fontWeight: 700, letterSpacing: '0.15em', opacity: 0.9, marginBottom: 4 }}>GET IN TOUCH</div>
-          
+
           {/* Phone with icon circles */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1064,6 +1114,44 @@ function Step1Form() {
         <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('backgroundImage', e.target.files[0])} />
         {s.backgroundImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.backgroundImage.name}</span>}
       </Field>
+      
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Categories Selection ({(s.selectedCategories || []).length}/8 selected)</div>
+        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 12 }}>Click to select or deselect categories. You can choose a maximum of 8 to display on the first slide.</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {PREDEFINED_CATEGORIES.map(cat => {
+            const currentSelected = s.selectedCategories || [];
+            const isSelected = currentSelected.includes(cat.id);
+            const Icon = cat.icon;
+            return (
+              <div 
+                key={cat.id}
+                onClick={() => {
+                  if (isSelected) {
+                    u('selectedCategories', currentSelected.filter((id: string) => id !== cat.id));
+                  } else if (currentSelected.length < 8) {
+                    u('selectedCategories', [...currentSelected, cat.id]);
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, userSelect: 'none',
+                  padding: '6px 12px', borderRadius: 20, cursor: 'pointer',
+                  fontSize: 12, fontWeight: isSelected ? 600 : 500,
+                  background: isSelected ? '#166534' : '#fff',
+                  color: isSelected ? '#fff' : '#4b5563',
+                  border: `1px solid ${isSelected ? '#166534' : '#d1d5db'}`,
+                  transition: 'all 0.2s',
+                  opacity: (!isSelected && currentSelected.length >= 8) ? 0.5 : 1,
+                  pointerEvents: (!isSelected && currentSelected.length >= 8) ? 'none' : 'auto',
+                }}
+              >
+                <Icon size={14} />
+                {cat.name.replace(/\\n/g, ' ')}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1218,7 +1306,7 @@ function Step6Form() {
       <Field label="Slide Subtitle">
         <input style={inputStyle} value={s.subtitle} onChange={e => u('subtitle', e.target.value)} placeholder="RETAIL SPACES" />
       </Field>
-      
+
       <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
         <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 1</div>
         <Field label="Label"><input style={inputStyle} value={s.floorHeightLabel} onChange={e => u('floorHeightLabel', e.target.value)} placeholder="Floor Height" /></Field>
@@ -1268,7 +1356,7 @@ function Step7Form() {
       <Field label="Slide Subtitle">
         <input style={inputStyle} value={s.subtitle} onChange={e => u('subtitle', e.target.value)} placeholder="RETAIL SPACES" />
       </Field>
-      
+
       <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
         <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 1</div>
         <Field label="Label"><input style={inputStyle} value={s.floorHeightLabel} onChange={e => u('floorHeightLabel', e.target.value)} placeholder="Floor Height" /></Field>
@@ -1318,7 +1406,7 @@ function Step8Form() {
       <Field label="Slide Subtitle">
         <input style={inputStyle} value={s.subtitle} onChange={e => u('subtitle', e.target.value)} placeholder="BE IN THE COMPANY OF THE BEST" />
       </Field>
-      
+
       <Field label="Legend Items (One per line)">
         <textarea
           style={{ ...textareaStyle, minHeight: 120 }}
@@ -1610,7 +1698,7 @@ function StepNearbyCommercialForm() {
       <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
         <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nearby Buildings</div>
         <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 12 }}>Enter building names, distances, and upload photos for each building</p>
-        
+
         {bInputs.map((bi) => (
           <div key={bi.num} style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: 12, marginBottom: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
@@ -1720,6 +1808,7 @@ export default function StepperApp() {
   const [step, setStep] = useState(0); // 0-indexed
   const [showAllSlides, setShowAllSlides] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isJsonPanelOpen, setIsJsonPanelOpen] = useState(false);
   const { data } = useFormData();
 
   const CurrentForm = STEPS[step].form;
@@ -1735,7 +1824,7 @@ export default function StepperApp() {
   };
 
   // Helper: fetch an image URL and return base64 data URL
-  const urlToBase64 = (url: string): Promise<string> => {
+  const urlToBase64 = (url: string, retryCount = 0): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -1747,14 +1836,28 @@ export default function StepperApp() {
         ctx?.drawImage(img, 0, 0);
         resolve(canvas.toDataURL('image/jpeg', 0.85));
       };
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onerror = () => {
+        if (retryCount === 0 && url.startsWith('http') && !url.includes('corsproxy.io')) {
+          const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+          urlToBase64(proxyUrl, 1).then(resolve).catch(reject);
+        } else {
+          reject(new Error('Failed to load image'));
+        }
+      };
       img.src = url;
     });
   };
 
   // Helper: get base64 from File or fallback URL, returns null if both fail
-  const getImageBase64 = async (file: File | null, fallbackUrl: string): Promise<string | null> => {
-    if (file) {
+  const getImageBase64 = async (file: any, fallbackUrl: string): Promise<string | null> => {
+    if (typeof file === 'string') {
+      try {
+        return await urlToBase64(file);
+      } catch {
+        return await urlToBase64(fallbackUrl).catch(() => null);
+      }
+    }
+    if (file instanceof File || file instanceof Blob) {
       return await fileToBase64(file);
     }
     try {
@@ -1766,44 +1869,50 @@ export default function StepperApp() {
 
   const handleDownloadPPT = async () => {
     setIsGenerating(true);
-    
+
     try {
       const PptxGenJS = await loadPptxGenJS();
       const pptx = new PptxGenJS();
+      pptx.defineLayout({ name: 'custom16x9', width: 13.33, height: 7.5 });
+      pptx.layout = 'custom16x9';
 
       // ==================== SLIDE 1: COVER PAGE ====================
       const slide1 = pptx.addSlide();
       const themeColor = data.slide1.themeColor.replace('#', '');
       const fontColor = data.slide1.fontColor.replace('#', '');
-      
+
       // Background image
       const bgImageData = await getImageBase64(
         data.slide1.backgroundImage,
         'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
       );
-      
+
       if (bgImageData) {
-        slide1.background = { data: bgImageData };
+        slide1.background = { color: themeColor };
+
+        slide1.addImage({
+          data: bgImageData,
+          x: 4.5, y: 0, w: 5.5, h: 7.5,
+          sizing: { type: 'cover', w: 5.5, h: 7.5 }
+        });
+
+        // Add gradient fade
+        const gradientSteps = [
+          { x: 4.5, w: 0.2, transparency: 0 },
+          { x: 4.7, w: 0.3, transparency: 30 },
+          { x: 5.0, w: 0.4, transparency: 60 },
+          { x: 5.4, w: 0.4, transparency: 85 },
+        ];
+        gradientSteps.forEach(g => {
+          slide1.addShape(pptx.ShapeType.rect, {
+            x: g.x, y: 0, w: g.w, h: 7.5,
+            fill: { color: themeColor, transparency: g.transparency },
+            line: { type: 'none' }
+          });
+        });
       } else {
         slide1.background = { color: themeColor };
       }
-      
-      // Gradient overlay – simulate left-to-right gradient with multiple rect strips
-      // Left side: nearly opaque theme color → right side: transparent
-      const gradientSteps = [
-        { x: 0, w: 3, transparency: 5 },    // almost solid
-        { x: 3, w: 1.5, transparency: 20 },  // mostly opaque
-        { x: 4.5, w: 1.5, transparency: 45 }, // semi-transparent
-        { x: 6, w: 1.5, transparency: 70 },   // mostly transparent
-        { x: 7.5, w: 2.5, transparency: 90 }, // nearly invisible
-      ];
-      gradientSteps.forEach(g => {
-        slide1.addShape(pptx.ShapeType.rect, {
-          x: g.x, y: 0, w: g.w, h: 7.5,
-          fill: { color: themeColor, transparency: g.transparency },
-          line: { type: 'none' }
-        });
-      });
 
       // Slide number badge
       slide1.addText(data.slide1.slideNumber || '01', {
@@ -1814,33 +1923,33 @@ export default function StepperApp() {
 
       // Title
       slide1.addText(data.slide1.title || 'MADHAV\nHIGHSTREET', {
-        x: 0.4, y: 1.0, w: 5, h: 1.4, fontSize: 44, bold: true,
-        color: fontColor, fontFace: 'Arial',
+        x: 0.4, y: 1.0, w: 5, h: 1.2, fontSize: 28, bold: true,
+        color: fontColor, fontFace: 'Arial', lineSpacing: 1,
       });
 
       // Subtitle
       slide1.addText(data.slide1.subtitle || 'THE NEXT PREMIUM RETAIL DESTINATION', {
-        x: 0.4, y: 2.5, w: 5, h: 0.5, fontSize: 16, bold: true,
-        color: fontColor, fontFace: 'Arial',
+        x: 0.4, y: 2.2, w: 5, h: 0.4, fontSize: 14, bold: true,
+        color: fontColor, fontFace: 'Arial', letterSpacing: 0.05,
       });
 
       // Address
       slide1.addText(data.slide1.address || 'SINDHU BHAVAN ROAD,\nBODAKDEV, AHMEDABAD', {
-        x: 0.4, y: 3.1, w: 5, h: 0.65, fontSize: 12,
+        x: 0.4, y: 2.6, w: 5, h: 0.65, fontSize: 11,
         color: fontColor, fontFace: 'Arial',
       });
 
       // Divider line
       slide1.addShape(pptx.ShapeType.rect, {
-        x: 0.4, y: 3.85, w: 1.2, h: 0.03,
+        x: 0.4, y: 4.15, w: 1.2, h: 0.03,
         fill: { color: fontColor },
         line: { type: 'none' }
       });
 
       // Presented by
       slide1.addText('Presented by', {
-        x: 0.4, y: 4.05, w: 5, h: 0.3, fontSize: 10,
-        color: fontColor, fontFace: 'Arial',
+        x: 0.4, y: 4.3, w: 5, h: 0.3, fontSize: 10,
+        color: fontColor, fontFace: 'Arial', transparency: 45,
       });
 
       // Logo + Company name
@@ -1852,55 +1961,53 @@ export default function StepperApp() {
       if (logoData) {
         slide1.addImage({
           data: logoData,
-          x: 0.4, y: 4.4, w: 0.4, h: 0.4,
-          rounding: true,
+          x: 0.4, y: 4.6, w: 0.5, h: 0.5,
+          sizing: { type: 'contain', w: 0.5, h: 0.5 }
         });
         slide1.addText(data.slide1.companyName || 'AESTHETIC ARC', {
-          x: 0.9, y: 4.35, w: 4, h: 0.3, fontSize: 14, bold: true,
+          x: 1.0, y: 4.6, w: 4, h: 0.3, fontSize: 14, bold: true,
           color: fontColor, fontFace: 'Arial',
         });
         slide1.addText(data.slide1.companyTagline || 'PROPERTY LEASING COMPANY', {
-          x: 0.9, y: 4.65, w: 4, h: 0.25, fontSize: 9,
-          color: fontColor, fontFace: 'Arial',
+          x: 1.0, y: 4.9, w: 4, h: 0.25, fontSize: 9,
+          color: fontColor, fontFace: 'Arial', transparency: 45,
         });
       } else {
         // Orange logo placeholder square with "A"
         slide1.addShape(pptx.ShapeType.rect, {
-          x: 0.4, y: 4.4, w: 0.35, h: 0.35,
+          x: 0.4, y: 4.6, w: 0.4, h: 0.4,
           fill: { color: 'ff6b00' },
           line: { type: 'none' },
           rectRadius: 0.05,
         });
         slide1.addText('A', {
-          x: 0.4, y: 4.4, w: 0.35, h: 0.35, fontSize: 14, bold: true,
+          x: 0.4, y: 4.6, w: 0.4, h: 0.4, fontSize: 14, bold: true,
           color: 'FFFFFF', align: 'center', valign: 'middle',
         });
         slide1.addText(data.slide1.companyName || 'AESTHETIC ARC', {
-          x: 0.85, y: 4.35, w: 4, h: 0.3, fontSize: 14, bold: true,
+          x: 0.9, y: 4.6, w: 4, h: 0.3, fontSize: 14, bold: true,
           color: fontColor, fontFace: 'Arial',
         });
         slide1.addText(data.slide1.companyTagline || 'PROPERTY LEASING COMPANY', {
-          x: 0.85, y: 4.65, w: 4, h: 0.25, fontSize: 9,
-          color: fontColor, fontFace: 'Arial',
+          x: 0.9, y: 4.9, w: 4, h: 0.25, fontSize: 9,
+          color: fontColor, fontFace: 'Arial', transparency: 45,
         });
       }
 
-      // Categories – single row of 10 at the bottom (matching web preview)
-      const categories = [
-        'Fashion', 'Retail', 'Lifestyle', 'F&B', 'Electronics',
-        'Hypermarket', 'Corporate\nOffices', 'Health &\nWellness', 'Multiplex', 'Game Zone',
-      ];
-      // Unicode icons that render well in PowerPoint
-      const catIcons = ['🏪', '🛍️', '🌿', '🍽️', '💻', '🛒', '🏢', '❤️', '🎬', '🎮'];
+      // Categories
+      const selectedCategories = (data.slide1.selectedCategories || []).map(
+        id => PREDEFINED_CATEGORIES.find(c => c.id === id) || PREDEFINED_CATEGORIES[0]
+      );
+      const numCats = selectedCategories.length || 1; // avoid division by zero
 
       const catY = 5.25;
       const catW = 0.82;
       const catH = 0.75;
       const catGap = 0.1;
-      const totalCatWidth = 10 * catW + 9 * catGap; // ~9.1
+      const totalCatWidth = numCats * catW + (numCats - 1) * catGap;
       const actualStartX = (10 - totalCatWidth) / 2; // center them
 
-      categories.forEach((name, i) => {
+      selectedCategories.forEach((cat, i) => {
         const xPos = actualStartX + i * (catW + catGap);
         // Background box
         slide1.addShape(pptx.ShapeType.rect, {
@@ -1909,13 +2016,15 @@ export default function StepperApp() {
           line: { color: fontColor, width: 0.5, dashType: 'solid' },
           rectRadius: 0.05,
         });
+        
         // Icon
-        slide1.addText(catIcons[i], {
+        slide1.addText(cat.emoji, {
           x: xPos, y: catY, w: catW, h: catH * 0.55, fontSize: 16,
           align: 'center', valign: 'middle',
         });
+        
         // Name
-        slide1.addText(name, {
+        slide1.addText(cat.name.replace(/\\n/g, '\n'), {
           x: xPos, y: catY + catH * 0.5, w: catW, h: catH * 0.5, fontSize: 6,
           color: fontColor, align: 'center', valign: 'top', bold: true, fontFace: 'Arial',
         });
@@ -1924,13 +2033,13 @@ export default function StepperApp() {
       // ==================== SLIDE 2: CITY AT A GLANCE ====================
       const slide2 = pptx.addSlide();
       slide2.background = { color: 'FFFFFF' };
-      
+
       // City image on right side
       const cityImageData = await getImageBase64(
         data.slide2.cityImage,
         'https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=2070&auto=format&fit=crop'
       );
-      
+
       if (cityImageData) {
         slide2.addImage({
           data: cityImageData,
@@ -1959,13 +2068,13 @@ export default function StepperApp() {
       });
 
       slide2.addText(data.slide2.cityName || 'AHMEDABAD', {
-        x: 1.15, y: 0.35, w: 4, h: 0.55, fontSize: 28, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.35, w: 4, h: 0.55, fontSize: 22, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1,
       });
       slide2.addText('AT A GLANCE', {
-        x: 1.15, y: 0.9, w: 4, h: 0.45, fontSize: 24, bold: true, color: 'f97316',
+        x: 1.15, y: 0.9, w: 4, h: 0.45, fontSize: 20, bold: true, color: 'f97316', fontFace: 'Arial', lineSpacing: 1,
       });
       slide2.addText('A Thriving City. A Growing Opportunity.', {
-        x: 1.15, y: 1.35, w: 4, h: 0.3, fontSize: 10, color: '555555',
+        x: 1.15, y: 1.35, w: 4, h: 0.3, fontSize: 9, color: '555555', fontFace: 'Arial',
       });
 
       // Stats in grid (4 columns x 2 rows)
@@ -1985,10 +2094,10 @@ export default function StepperApp() {
         const row = Math.floor(i / 4);
         const xPos = 0.4 + (col * 1.2);
         const yPos = 1.85 + (row * 1.25);
-        
+
         const borderColor = stat.highlight ? '3d1a6e' : 'e5e7eb';
         const bgColor = stat.highlight ? 'f5f0ff' : 'FFFFFF';
-        
+
         slide2.addShape(pptx.ShapeType.rect, {
           x: xPos, y: yPos, w: 1.1, h: 1.1,
           fill: { color: bgColor },
@@ -2026,13 +2135,13 @@ export default function StepperApp() {
       // ==================== SLIDE 3: PREMIUM LOCATION ====================
       const slide3 = pptx.addSlide();
       slide3.background = { color: 'FFFFFF' };
-      
+
       // Map image on right
       const mapImageData = await getImageBase64(
         data.slide3.mapImage,
         'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop'
       );
-      
+
       if (mapImageData) {
         slide3.addImage({
           data: mapImageData,
@@ -2062,11 +2171,11 @@ export default function StepperApp() {
 
       const locationTitle = (data.slide3.locationTitle || 'PREMIUM LOCATION\nTHAT CONNECTS EVERYTHING').split('\n');
       slide3.addText(locationTitle[0] || 'PREMIUM LOCATION', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 24, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 20, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
       });
       if (locationTitle[1]) {
         slide3.addText(locationTitle[1], {
-          x: 1.15, y: 1.45, w: 3.5, h: 0.5, fontSize: 22, bold: true, color: 'f97316',
+          x: 1.15, y: 1.45, w: 3.5, h: 0.5, fontSize: 18, bold: true, color: 'f97316', fontFace: 'Arial', lineSpacing: 1.1,
         });
       }
 
@@ -2116,13 +2225,13 @@ export default function StepperApp() {
       // ==================== SLIDE 4: PROJECT SHOWCASE ====================
       const slide4 = pptx.addSlide();
       slide4.background = { color: 'FFFFFF' };
-      
+
       // Project image on right
       const projectImageData = await getImageBase64(
         data.slide4.projectImage,
         'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
       );
-      
+
       if (projectImageData) {
         slide4.addImage({
           data: projectImageData,
@@ -2150,10 +2259,10 @@ export default function StepperApp() {
       });
 
       slide4.addText('PROJECT', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 24, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
       });
       slide4.addText('SHOWCASE', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
+        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 24, bold: true, color: 'f97316', fontFace: 'Arial', lineSpacing: 1.1,
       });
 
       const features = [
@@ -2198,13 +2307,13 @@ export default function StepperApp() {
       // ==================== SLIDE 5: CONSTRUCTION PROGRESS ====================
       const slide5 = pptx.addSlide();
       slide5.background = { color: 'FFFFFF' };
-      
+
       // Construction image on right
       const constructionImageData = await getImageBase64(
         data.slide5.constructionImage,
         'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2070&auto=format&fit=crop'
       );
-      
+
       if (constructionImageData) {
         slide5.addImage({
           data: constructionImageData,
@@ -2232,10 +2341,10 @@ export default function StepperApp() {
       });
 
       slide5.addText('CONSTRUCTION', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 24, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
       });
       slide5.addText('PROGRESS', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
+        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 24, bold: true, color: 'f97316', fontFace: 'Arial', lineSpacing: 1.1,
       });
 
       const progressItems = [
@@ -2288,10 +2397,10 @@ export default function StepperApp() {
       });
 
       slideSiteVisibility.addText(data.slideSiteVisibility.title || 'SITE VISIBILITY', {
-        x: 1.15, y: 0.9, w: 5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 5, h: 0.6, fontSize: 24, bold: true, color: '3d1a6e',
       });
       slideSiteVisibility.addText(data.slideSiteVisibility.subtitle || 'EXCELLENT FRONTAGE & ACCESS', {
-        x: 1.15, y: 1.45, w: 5, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
+        x: 1.15, y: 1.45, w: 5, h: 0.55, fontSize: 20, bold: true, color: 'f97316',
       });
 
       const visibilityImages = [
@@ -2336,7 +2445,7 @@ export default function StepperApp() {
           fontSize: 10, bold: true, color: 'FFFFFF',
           align: 'center', valign: 'middle',
         });
-        
+
         // Orange accent line below label
         slideSiteVisibility.addShape(pptx.ShapeType.rect, {
           x: xPos + 0.5, y: yPos + 2.7, w: visW - 1.0, h: 0.04,
@@ -2348,13 +2457,13 @@ export default function StepperApp() {
       // ==================== SLIDE 7: GROUND FLOOR PLAN ====================
       const slide6 = pptx.addSlide();
       slide6.background = { color: 'FFFFFF' };
-      
+
       // Plan image on right
       const planImageData = await getImageBase64(
         data.slide6.planImage,
-        'https://images.unsplash.com/photo-1598928506311-c55dd1b4eb64?q=80&w=800&auto=format&fit=crop'
+        'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=800&auto=format&fit=crop'
       );
-      
+
       if (planImageData) {
         slide6.addImage({
           data: planImageData,
@@ -2382,10 +2491,10 @@ export default function StepperApp() {
       });
 
       slide6.addText(data.slide6.title || 'GROUND FLOOR PLAN', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 22, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
       });
       slide6.addText(data.slide6.subtitle || 'RETAIL SPACES', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
+        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 22, bold: true, color: 'f97316', fontFace: 'Arial', lineSpacing: 1.1,
       });
 
       const floorPlanFeatures = [
@@ -2424,7 +2533,7 @@ export default function StepperApp() {
       // Plan image on right
       const floorPlanImageData = await getImageBase64(
         data.slideFirstFloorPlan.floorPlanImage,
-        'https://images.unsplash.com/photo-1598928506311-c55dd1b4eb64?q=80&w=800&auto=format&fit=crop'
+        'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=800&auto=format&fit=crop'
       );
 
       if (floorPlanImageData) {
@@ -2454,10 +2563,10 @@ export default function StepperApp() {
       });
 
       slideFirstFloorPlan.addText(data.slideFirstFloorPlan.title || 'FIRST FLOOR PLAN', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 22, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
       });
       slideFirstFloorPlan.addText(data.slideFirstFloorPlan.subtitle || 'RETAIL SPACES', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
+        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 22, bold: true, color: 'f97316', fontFace: 'Arial', lineSpacing: 1.1,
       });
 
       const firstFloorPlanFeatures = [
@@ -2492,13 +2601,13 @@ export default function StepperApp() {
       // ==================== SLIDE 7: SECOND FLOOR PLAN ====================
       const slide7 = pptx.addSlide();
       slide7.background = { color: 'FFFFFF' };
-      
+
       // Plan image on right
       const plan7ImageData = await getImageBase64(
         data.slide7.planImage,
-        'https://images.unsplash.com/photo-1598928506311-c55dd1b4eb64?q=80&w=800&auto=format&fit=crop'
+        'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=800&auto=format&fit=crop'
       );
-      
+
       if (plan7ImageData) {
         slide7.addImage({
           data: plan7ImageData,
@@ -2526,10 +2635,10 @@ export default function StepperApp() {
       });
 
       slide7.addText(data.slide7.title || 'SECOND FLOOR PLAN', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 22, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
       });
       slide7.addText(data.slide7.subtitle || 'RETAIL SPACES', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
+        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 22, bold: true, color: 'f97316', fontFace: 'Arial', lineSpacing: 1.1,
       });
 
       const floorPlan7Features = [
@@ -2587,10 +2696,10 @@ export default function StepperApp() {
       });
 
       slideNearbyCommercial.addText(data.slideNearbyCommercial.title || 'NEARBY COMMERCIAL', {
-        x: 1.15, y: 0.9, w: 8, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 8, h: 0.6, fontSize: 24, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
       });
       slideNearbyCommercial.addText(data.slideNearbyCommercial.subtitle || 'ECOSYSTEM', {
-        x: 1.15, y: 1.45, w: 8, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
+        x: 1.15, y: 1.45, w: 8, h: 0.55, fontSize: 20, bold: true, color: 'f97316', fontFace: 'Arial', lineSpacing: 1.1,
       });
 
       const buildings = [
@@ -2678,13 +2787,13 @@ export default function StepperApp() {
       // ==================== SLIDE 8: BRAND LOCATION MAP ====================
       const slide8 = pptx.addSlide();
       slide8.background = { color: 'FFFFFF' };
-      
+
       // Map image on right
       const map8ImageData = await getImageBase64(
         data.slide8.mapImage,
         'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop'
       );
-      
+
       if (map8ImageData) {
         slide8.addImage({
           data: map8ImageData,
@@ -2712,10 +2821,10 @@ export default function StepperApp() {
       });
 
       slide8.addText(data.slide8.title || 'BRAND LOCATION MAP', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 22, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
       });
       slide8.addText(data.slide8.subtitle || 'BE IN THE COMPANY OF THE BEST', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
+        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 18, bold: true, color: 'f97316', fontFace: 'Arial', lineSpacing: 1.1,
       });
 
       const brandLines = (data.slide8.brandList || '').split('\n').filter(Boolean);
@@ -2737,7 +2846,7 @@ export default function StepperApp() {
       // ==================== SLIDE 9: LIFESTYLE AROUND YOU ====================
       const slide9 = pptx.addSlide();
       slide9.background = { color: 'FFFFFF' };
-      
+
       // Header
       slide9.addText(data.slide9.slideNumber || '09', {
         x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
@@ -2746,10 +2855,10 @@ export default function StepperApp() {
       });
 
       slide9.addText(data.slide9.title || 'LIFESTYLE AROUND YOU', {
-        x: 1.15, y: 0.9, w: 5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 5, h: 0.6, fontSize: 22, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
       });
       slide9.addText(data.slide9.subtitle || 'EVERYTHING NEARBY', {
-        x: 1.15, y: 1.45, w: 5, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
+        x: 1.15, y: 1.45, w: 5, h: 0.55, fontSize: 20, bold: true, color: 'f97316', fontFace: 'Arial', lineSpacing: 1.1,
       });
 
       const lifestyleCards = [
@@ -2801,7 +2910,7 @@ export default function StepperApp() {
       // ==================== SLIDE 10: PROPERTY SPECIFICATIONS ====================
       const slide10 = pptx.addSlide();
       slide10.background = { color: 'FFFFFF' };
-      
+
       // Header
       slide10.addText(data.slide10.slideNumber || '10', {
         x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
@@ -2810,7 +2919,7 @@ export default function StepperApp() {
       });
 
       slide10.addText(data.slide10.title || 'PROPERTY SPECIFICATIONS', {
-        x: 1.15, y: 0.9, w: 5, h: 1.1, fontSize: 30, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 5, h: 1.1, fontSize: 22, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
       });
 
       const col1Data = [
@@ -2905,7 +3014,7 @@ export default function StepperApp() {
       });
 
       slide11.addText(data.slide11.title || 'WHY INVEST IN MADHAV HIGHSTREET?', {
-        x: 1.15, y: 0.9, w: 8, h: 1.1, fontSize: 30, bold: true, color: '3d1a6e',
+        x: 1.15, y: 0.9, w: 8, h: 1.1, fontSize: 22, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
       });
 
       const row1Cards = [
@@ -2995,7 +3104,7 @@ export default function StepperApp() {
       // Main heading
       slideContact.addText((data.slideContact.heading || "LET'S BUILD\nSOMETHING ICONIC\nTOGETHER").toUpperCase(), {
         x: 0.5, y: 1.8, w: 4.8, h: 2.5, fontSize: 34, bold: true,
-        color: 'FFFFFF', fontFace: 'Arial', lineSpacing: 1.1,
+        color: 'FFFFFF', fontFace: 'Arial', lineSpacing: 1.1, letterSpacing: -0.02,
       });
 
       // Company info
@@ -3072,7 +3181,7 @@ export default function StepperApp() {
       // ==================== SLIDE 16: THANK YOU ====================
       const slide12 = pptx.addSlide();
       slide12.background = { color: '1f2937' };
-      
+
       // Decorative accent line
       slide12.addShape(pptx.ShapeType.rect, {
         x: 4, y: 2.5, w: 2, h: 0.05,
@@ -3082,7 +3191,7 @@ export default function StepperApp() {
 
       slide12.addText('Thank You!', {
         x: 1, y: 2.8, w: 8, h: 1.2, fontSize: 48, bold: true,
-        color: 'FFFFFF', align: 'center', fontFace: 'Arial',
+        color: 'FFFFFF', align: 'center', fontFace: 'Arial', letterSpacing: -0.02,
       });
       slide12.addText(data.slide1.companyName || 'AESTHETIC ARC', {
         x: 1, y: 4.0, w: 8, h: 0.5, fontSize: 18, bold: true,
@@ -3239,9 +3348,14 @@ export default function StepperApp() {
 
               {/* Live preview panel */}
               <div style={{ overflowY: 'auto', padding: '26px', background: '#f0fdf4', display: 'flex', flexDirection: 'column', gap: 14, borderLeft: '2px solid #d1fae5' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#14532d', animation: 'pulse 2s infinite' }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#14532d', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Live Preview — Slide {step + 1}</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#14532d', animation: 'pulse 2s infinite' }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#14532d', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Live Preview — Slide {step + 1}</span>
+                  </div>
+                  <button onClick={() => setIsJsonPanelOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', border: '1px solid #14532d', borderRadius: 6, color: '#14532d', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    <Code size={14} /> Preview JSON
+                  </button>
                 </div>
                 <CurrentPreview />
                 <p style={{ fontSize: 11, color: '#6b7280', textAlign: 'center' }}>✏️ Changes reflect instantly as you type</p>
@@ -3250,6 +3364,12 @@ export default function StepperApp() {
           </div>
         </div>
       )}
+      <JsonPreviewPanel 
+        isOpen={isJsonPanelOpen} 
+        onClose={() => setIsJsonPanelOpen(false)} 
+        onDownloadPPT={handleDownloadPPT}
+        isGeneratingPPT={isGenerating}
+      />
     </div>
   );
 }

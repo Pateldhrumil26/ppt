@@ -11,6 +11,7 @@ export interface Slide1Data {
   slideNumber: string;
   logo: File | null;
   backgroundImage: File | null;
+  selectedCategories: string[];
 }
 
 export interface Slide2Data {
@@ -248,6 +249,7 @@ export interface AllSlides {
 
 interface FormContextType {
   data: AllSlides;
+  setData: (data: AllSlides) => void;
   updateSlide1: (d: Partial<Slide1Data>) => void;
   updateSlide2: (d: Partial<Slide2Data>) => void;
   updateSlide3: (d: Partial<Slide3Data>) => void;
@@ -277,6 +279,7 @@ const initial: AllSlides = {
     slideNumber: '01',
     logo: null,
     backgroundImage: null,
+    selectedCategories: ['cat_1', 'cat_2', 'cat_3', 'cat_4', 'cat_5', 'cat_6', 'cat_7', 'cat_8'],
   },
   slide2: {
     cityName: 'AHMEDABAD',
@@ -516,7 +519,7 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     setData(prev => ({ ...prev, slideContact: { ...prev.slideContact, ...d } }));
 
   return (
-    <FormContext.Provider value={{ data, updateSlide1, updateSlide2, updateSlide3, updateSlide4, updateSlide5, updateSlide6, updateSlide7, updateSlide8, updateSlide9, updateSlide10, updateSlide11, updateSlideSiteVisibility, updateSlideFirstFloorPlan, updateSlideNearbyCommercial, updateSlideContact }}>
+    <FormContext.Provider value={{ data, setData, updateSlide1, updateSlide2, updateSlide3, updateSlide4, updateSlide5, updateSlide6, updateSlide7, updateSlide8, updateSlide9, updateSlide10, updateSlide11, updateSlideSiteVisibility, updateSlideFirstFloorPlan, updateSlideNearbyCommercial, updateSlideContact }}>
       {children}
     </FormContext.Provider>
   );
