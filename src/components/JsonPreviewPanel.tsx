@@ -7,9 +7,10 @@ interface JsonPreviewPanelProps {
   onClose: () => void;
   onDownloadPPT: () => void;
   isGeneratingPPT: boolean;
+  onApply?: () => void;
 }
 
-const JsonPreviewPanel: React.FC<JsonPreviewPanelProps> = ({ isOpen, onClose, onDownloadPPT, isGeneratingPPT }) => {
+const JsonPreviewPanel: React.FC<JsonPreviewPanelProps> = ({ isOpen, onClose, onDownloadPPT, isGeneratingPPT, onApply }) => {
   const { data, setData } = useFormData();
   const [jsonText, setJsonText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +55,11 @@ const JsonPreviewPanel: React.FC<JsonPreviewPanelProps> = ({ isOpen, onClose, on
       // Show success indicator briefly
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
+      
+      // Call the onApply callback if provided (for redirecting to PPT view)
+      if (onApply) {
+        setTimeout(() => onApply(), 500);
+      }
     } catch (e: any) {
       setError(`Invalid JSON: ${e.message}`);
     }

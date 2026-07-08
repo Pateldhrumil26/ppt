@@ -11,6 +11,22 @@ export interface Slide1Data {
   slideNumber: string;
   logo: File | null;
   backgroundImage: File | null;
+  categoryIcon1: File | null;
+  categoryIcon2: File | null;
+  categoryIcon3: File | null;
+  categoryIcon4: File | null;
+  categoryIcon5: File | null;
+  categoryIcon6: File | null;
+  categoryIcon7: File | null;
+  categoryIcon8: File | null;
+  categoryName1: string;
+  categoryName2: string;
+  categoryName3: string;
+  categoryName4: string;
+  categoryName5: string;
+  categoryName6: string;
+  categoryName7: string;
+  categoryName8: string;
   selectedCategories: string[];
 }
 
@@ -150,13 +166,8 @@ export interface Slide10Data {
 export interface Slide11Data {
   slideNumber: string;
   title: string;
-  card1Label: string;
-  card2Label: string;
-  card3Label: string;
-  card4Label: string;
-  card5Label: string;
-  card6Label: string;
-  card7Label: string;
+  buildingImage: File | null;
+  selectedCategories: string[];
 }
 
 // ─────────────────────── MAIN REMOTE SLIDES DATA ──────────────────────────────
@@ -279,6 +290,22 @@ const initial: AllSlides = {
     slideNumber: '01',
     logo: null,
     backgroundImage: null,
+    categoryIcon1: null,
+    categoryIcon2: null,
+    categoryIcon3: null,
+    categoryIcon4: null,
+    categoryIcon5: null,
+    categoryIcon6: null,
+    categoryIcon7: null,
+    categoryIcon8: null,
+    categoryName1: 'Fashion',
+    categoryName2: 'Retail',
+    categoryName3: 'Lifestyle',
+    categoryName4: 'F&B',
+    categoryName5: 'Electronics',
+    categoryName6: 'Hypermarket',
+    categoryName7: 'Corporate\\nOffices',
+    categoryName8: 'Health &\\nWellness',
     selectedCategories: ['cat_1', 'cat_2', 'cat_3', 'cat_4', 'cat_5', 'cat_6', 'cat_7', 'cat_8'],
   },
   slide2: {
@@ -408,13 +435,8 @@ const initial: AllSlides = {
   slide11: {
     slideNumber: '14',
     title: 'WHY INVEST IN\nMADHAV HIGHSTREET?',
-    card1Label: 'Prime Location\nHigh Visibility',
-    card2Label: 'Surrounded by\nPremium Brands',
-    card3Label: 'High Footfall\nCatchment',
-    card4Label: 'Modern Architecture\n& Design',
-    card5Label: 'Excellent\nConnectivity & Access',
-    card6Label: 'Strong Investment\n& Returns',
-    card7Label: 'Strong Investment\nPotential',
+    buildingImage: null,
+    selectedCategories: [],
   },
   slideSiteVisibility: {
     slideNumber: '06',

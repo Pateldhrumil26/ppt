@@ -23,52 +23,42 @@ const loadPptxGenJS = async () => {
 };
 
 // Helper to safely get an image URL whether it's a File object or a string URL
-const getSafeImageUrl = (source: any): string | null => {
-  if (!source) return null;
+const getSafeImageUrl = (source: any): string | undefined => {
+  if (!source) return undefined;
   if (typeof source === 'string') return source;
   if (source instanceof File || source instanceof Blob) {
     try {
       return URL.createObjectURL(source);
     } catch (e) {
-      return null;
+      return undefined;
     }
   }
-  return null;
+  return undefined;
 };
 
 // ─────────────────────── SLIDE PREVIEW COMPONENTS ───────────────────────────
 
+// Import slide preview components (only existing ones)
+import Slide1Preview from '../components/SlidePreviews/Slide1Preview';
+import Slide2Preview from '../components/SlidePreviews/Slide2Preview';
+
+// Export PREDEFINED_CATEGORIES for use in other components (15 investment-based categories)
 export const PREDEFINED_CATEGORIES = [
-  { id: 'cat_1', name: 'Fashion', icon: Shirt, emoji: '👗' },
-  { id: 'cat_2', name: 'Retail', icon: ShoppingBag, emoji: '🛍️' },
-  { id: 'cat_3', name: 'Lifestyle', icon: Leaf, emoji: '🌿' },
-  { id: 'cat_4', name: 'F&B', icon: Utensils, emoji: '🍽️' },
-  { id: 'cat_5', name: 'Electronics', icon: MonitorSmartphone, emoji: '💻' },
-  { id: 'cat_6', name: 'Hypermarket', icon: ShoppingCart, emoji: '🛒' },
-  { id: 'cat_7', name: 'Corporate\\nOffices', icon: Building2, emoji: '🏢' },
-  { id: 'cat_8', name: 'Health &\\nWellness', icon: HeartPulse, emoji: '❤️' },
-  { id: 'cat_9', name: 'Multiplex', icon: Ticket, emoji: '🎬' },
-  { id: 'cat_10', name: 'Game Zone', icon: Gamepad2, emoji: '🎮' },
-  { id: 'cat_11', name: 'Pharmacy', icon: Pill, emoji: '💊' },
-  { id: 'cat_12', name: 'Supermarket', icon: ShoppingBasket, emoji: '🏪' },
-  { id: 'cat_13', name: 'Cafe', icon: Coffee, emoji: '☕' },
-  { id: 'cat_14', name: 'Restaurant', icon: ChefHat, emoji: '🍝' },
-  { id: 'cat_15', name: 'ATM', icon: CreditCard, emoji: '🏧' },
-  { id: 'cat_16', name: 'Bank', icon: Landmark, emoji: '🏦' },
-  { id: 'cat_17', name: 'Gym & Fitness', icon: Dumbbell, emoji: '🏋️' },
-  { id: 'cat_18', name: 'Spa & Salon', icon: Scissors, emoji: '✂️' },
-  { id: 'cat_19', name: 'Jewelry', icon: Gem, emoji: '💎' },
-  { id: 'cat_20', name: 'Cosmetics', icon: Sparkles, emoji: '✨' },
-  { id: 'cat_21', name: 'Footwear', icon: Footprints, emoji: '👞' },
-  { id: 'cat_22', name: 'Kids Zone', icon: Baby, emoji: '🧸' },
-  { id: 'cat_23', name: 'Home Decor', icon: Home, emoji: '🛋️' },
-  { id: 'cat_24', name: 'TV & Audio', icon: Tv, emoji: '📺' },
-  { id: 'cat_25', name: 'Bookstore', icon: BookOpen, emoji: '📚' },
-  { id: 'cat_26', name: 'Opticals', icon: Glasses, emoji: '👓' },
-  { id: 'cat_27', name: 'Travel Agency', icon: Plane, emoji: '✈️' },
-  { id: 'cat_28', name: 'Clinic', icon: Stethoscope, emoji: '🩺' },
-  { id: 'cat_29', name: 'Co-Working', icon: Users, emoji: '👥' },
-  { id: 'cat_30', name: 'Auto Showroom', icon: Car, emoji: '🚗' },
+  { id: 'cat_1', name: 'Prime Location', icon: MapPin, emoji: '📍' },
+  { id: 'cat_2', name: 'Premium Brands', icon: Gem, emoji: '💎' },
+  { id: 'cat_3', name: 'High Footfall', icon: Users, emoji: '👥' },
+  { id: 'cat_4', name: 'Modern Architecture', icon: Building2, emoji: '🏢' },
+  { id: 'cat_5', name: 'Excellent Connectivity', icon: Route, emoji: '🛣️' },
+  { id: 'cat_6', name: 'Strong Investment Returns', icon: TrendingUp, emoji: '📈' },
+  { id: 'cat_7', name: 'Future Growth', icon: ArrowUpDown, emoji: '↗️' },
+  { id: 'cat_8', name: 'Retail Opportunity', icon: ShoppingBag, emoji: '🛍️' },
+  { id: 'cat_9', name: 'F&B Potential', icon: Utensils, emoji: '🍽️' },
+  { id: 'cat_10', name: 'Corporate Hub', icon: Briefcase, emoji: '💼' },
+  { id: 'cat_11', name: 'Lifestyle Destination', icon: Leaf, emoji: '🌿' },
+  { id: 'cat_12', name: 'Entertainment Zone', icon: Ticket, emoji: '🎬' },
+  { id: 'cat_13', name: 'Health & Wellness', icon: HeartPulse, emoji: '❤️' },
+  { id: 'cat_14', name: 'Smart Design', icon: Diamond, emoji: '💠' },
+  { id: 'cat_15', name: 'High Visibility', icon: Eye, emoji: '👁️' },
 ];
 
 const SlideShell = ({ children }: { children: React.ReactNode }) => (
@@ -691,70 +681,118 @@ function Slide10Preview() {
 
 function Slide11Preview() {
   const { data: { slide11: s } } = useFormData();
-  const hc = '#3d1a6e', ac = '#f97316';
+  const tc = '#4B247A'; // theme purple
+  const buildingSrc = s.buildingImage
+    ? getSafeImageUrl(s.buildingImage)
+    : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
 
-  const row1 = [
-    { icon: MapPin, label: s.card1Label || 'Prime Location\nHigh Visibility' },
-    { icon: ShoppingBag, label: s.card2Label || 'Surrounded by\nPremium Brands' },
-    { icon: Users, label: s.card3Label || 'High Footfall\nCatchment' },
-    { icon: Building, label: s.card4Label || 'Modern Architecture\n& Design' },
-  ];
+  // Get selected categories (up to 7) from form selection
+  const selectedCategories = (s.selectedCategories || []).slice(0, 7).map(id =>
+    PREDEFINED_CATEGORIES.find(c => c.id === id) || PREDEFINED_CATEGORIES[0]
+  );
 
-  const row2 = [
-    { icon: Route, label: s.card5Label || 'Excellent\nConnectivity & Access' },
-    { icon: TrendingUp, label: s.card6Label || 'Strong Investment\n& Returns' },
-    { icon: BarChart3, label: s.card7Label || 'Strong Investment\nPotential' },
-  ];
+  // Ensure we have 7 items (fill with defaults if needed)
+  const highlights = [
+    ...selectedCategories.slice(0, 7),
+    ...Array(Math.max(0, 7 - selectedCategories.length)).fill(PREDEFINED_CATEGORIES[0])
+  ].slice(0, 7);
+
+  const iconSize = 'clamp(14px,2.2vw,28px)';
+  const circleSize = 'clamp(38px,6vw,72px)';
 
   return (
     <SlideShell>
-      <div style={{ position: 'absolute', inset: 0, background: '#fff', padding: '4%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }} />
-      {/* Header */}
-      <div style={{ position: 'absolute', left: '4%', top: '4%', right: '4%', display: 'flex', alignItems: 'center', gap: 8, zIndex: 10 }}>
-        <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>
-          {s.slideNumber || '11'}
-        </div>
-        <div>
-          <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.2vw,24px)', color: hc, lineHeight: 1.1 }}>WHY INVEST IN</div>
-          <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.2vw,24px)', color: ac, lineHeight: 1.1 }}>MADHAV HIGHSTREET?</div>
-        </div>
+      {/* Dark navy base */}
+      <div style={{ position: 'absolute', inset: 0, background: '#0d0420' }} />
+
+      {/* Building photo — right 55% */}
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '55%' }}>
+        <img
+          src={buildingSrc}
+          alt="Building"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+        {/* Fade from dark bg → transparent so it blends */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(90deg, #0d0420 0%, rgba(13,4,32,0.55) 35%, transparent 80%)',
+        }} />
       </div>
 
-      {/* Cards Area */}
-      <div style={{ position: 'absolute', left: '4%', right: '4%', bottom: '8%', top: '24%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 'clamp(8px, 2vw, 20px)' }}>
-        {/* Row 1 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'clamp(8px, 1.5vw, 16px)' }}>
-          {row1.map((item, i) => {
-            const Icon = item.icon;
+      {/* All content sits above the image */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        padding: '5% 5% 6% 5%',
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      }}>
+
+        {/* ── Title block ── */}
+        <div>
+          {/* Slide number badge */}
+          <div style={{
+            display: 'inline-block',
+            background: tc, color: '#fff', fontWeight: 900,
+            fontSize: 'clamp(9px,1.4vw,16px)',
+            padding: '2px 10px', borderRadius: 4,
+            marginBottom: 'clamp(6px,1vw,14px)',
+          }}>
+            {s.slideNumber || '14'}
+          </div>
+
+          <div style={{ fontWeight: 900, fontSize: 'clamp(16px,3.2vw,40px)', color: '#fff', lineHeight: 1.05, letterSpacing: '-0.01em' }}>
+            WHY INVEST IN
+          </div>
+          <div style={{ fontWeight: 900, fontSize: 'clamp(16px,3.2vw,40px)', color: '#fff', lineHeight: 1.05, letterSpacing: '-0.01em', marginBottom: 'clamp(6px,1vw,14px)' }}>
+            {s.title || 'MADHAV HIGHSTREET?'}
+          </div>
+
+          {/* Purple accent underline */}
+          <div style={{ width: 'clamp(28px,3.5vw,44px)', height: 3, background: tc, borderRadius: 2 }} />
+        </div>
+
+        {/* ── 7 Features in one row ── */}
+        <div style={{ 
+          display: 'flex', 
+          gap: 'clamp(8px,1.5vw,20px)', 
+          alignItems: 'flex-start',
+          justifyContent: 'space-between'
+        }}>
+          {highlights.map((cat, i) => {
+            const Icon = cat.icon;
             return (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'clamp(6px, 1vw, 12px)', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 'clamp(8px, 1.5vw, 14px)', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
-                <div style={{ width: 'clamp(20px, 3.5vw, 36px)', height: 'clamp(20px, 3.5vw, 36px)', borderRadius: '50%', background: '#fff7ed', border: '1px solid #ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size="clamp(10px, 1.8vw, 18px)" style={{ color: ac }} />
+              <div key={i} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 'clamp(5px,0.8vw,12px)',
+                flex: '1 1 0',
+                minWidth: 'clamp(50px,7vw,90px)',
+              }}>
+                {/* Purple-bordered circle */}
+                <div style={{
+                  width: circleSize, height: circleSize,
+                  borderRadius: '50%',
+                  border: `clamp(1.5px,0.25vw,3px) solid ${tc}`,
+                  background: 'rgba(75,36,122,0.18)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                  aspectRatio: '1/1',
+                }}>
+                  <Icon style={{ width: iconSize, height: iconSize, color: '#fff' }} strokeWidth={1.5} />
                 </div>
-                <div style={{ fontSize: 'clamp(6px, 1vw, 11px)', fontWeight: 700, color: hc, whiteSpace: 'pre-line', lineHeight: 1.2 }}>
-                  {item.label}
+                {/* Label below */}
+                <div style={{
+                  fontSize: 'clamp(5px,0.75vw,9px)', color: '#ffffffcc',
+                  textAlign: 'center', lineHeight: 1.3,
+                  whiteSpace: 'pre-line', fontWeight: 500,
+                }}>
+                  {cat.name.replace(/\\n/g, '\n')}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Row 2 */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(8px, 1.5vw, 16px)' }}>
-          {row2.map((item, i) => {
-            const Icon = item.icon;
-            return (
-              <div key={i} style={{ display: 'flex', width: '23%', alignItems: 'center', gap: 'clamp(6px, 1vw, 12px)', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 'clamp(8px, 1.5vw, 14px)', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
-                <div style={{ width: 'clamp(20px, 3.5vw, 36px)', height: 'clamp(20px, 3.5vw, 36px)', borderRadius: '50%', background: '#fff7ed', border: '1px solid #ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size="clamp(10px, 1.8vw, 18px)" style={{ color: ac }} />
-                </div>
-                <div style={{ fontSize: 'clamp(6px, 1vw, 11px)', fontWeight: 700, color: hc, whiteSpace: 'pre-line', lineHeight: 1.2 }}>
-                  {item.label}
-                </div>
-              </div>
-            );
-          })}
-        </div>
       </div>
     </SlideShell>
   );
@@ -1114,23 +1152,23 @@ function Step1Form() {
         <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('backgroundImage', e.target.files[0])} />
         {s.backgroundImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.backgroundImage.name}</span>}
       </Field>
-      
+
       <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
         <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Categories Selection ({(s.selectedCategories || []).length}/8 selected)</div>
         <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 12 }}>Click to select or deselect categories. You can choose a maximum of 8 to display on the first slide.</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {PREDEFINED_CATEGORIES.map(cat => {
-            const currentSelected = s.selectedCategories || [];
-            const isSelected = currentSelected.includes(cat.id);
+            const selectedCats = s.selectedCategories || [];
+            const isSelected = selectedCats.includes(cat.id);
             const Icon = cat.icon;
             return (
-              <div 
+              <div
                 key={cat.id}
                 onClick={() => {
                   if (isSelected) {
-                    u('selectedCategories', currentSelected.filter((id: string) => id !== cat.id));
-                  } else if (currentSelected.length < 8) {
-                    u('selectedCategories', [...currentSelected, cat.id]);
+                    u('selectedCategories', selectedCats.filter((id: string) => id !== cat.id));
+                  } else if (selectedCats.length < 8) {
+                    u('selectedCategories', [...selectedCats, cat.id]);
                   }
                 }}
                 style={{
@@ -1141,8 +1179,8 @@ function Step1Form() {
                   color: isSelected ? '#fff' : '#4b5563',
                   border: `1px solid ${isSelected ? '#166534' : '#d1d5db'}`,
                   transition: 'all 0.2s',
-                  opacity: (!isSelected && currentSelected.length >= 8) ? 0.5 : 1,
-                  pointerEvents: (!isSelected && currentSelected.length >= 8) ? 'none' : 'auto',
+                  opacity: (!isSelected && selectedCats.length >= 8) ? 0.5 : 1,
+                  pointerEvents: (!isSelected && selectedCats.length >= 8) ? 'none' : 'auto',
                 }}
               >
                 <Icon size={14} />
@@ -1524,35 +1562,65 @@ function Step11Form() {
   const { data: { slide11: s }, updateSlide11 } = useFormData();
   const u = (k: any, v: any) => updateSlide11({ [k]: v });
 
-  const cards = [
-    { labelK: 'card1Label', defaultLabel: 'Prime Location\nHigh Visibility', title: 'Highlight 1' },
-    { labelK: 'card2Label', defaultLabel: 'Surrounded by\nPremium Brands', title: 'Highlight 2' },
-    { labelK: 'card3Label', defaultLabel: 'High Footfall\nCatchment', title: 'Highlight 3' },
-    { labelK: 'card4Label', defaultLabel: 'Modern Architecture\n& Design', title: 'Highlight 4' },
-    { labelK: 'card5Label', defaultLabel: 'Excellent\nConnectivity & Access', title: 'Highlight 5' },
-    { labelK: 'card6Label', defaultLabel: 'Strong Investment\n& Returns', title: 'Highlight 6' },
-    { labelK: 'card7Label', defaultLabel: 'Strong Investment\nPotential', title: 'Highlight 7' },
-  ];
-
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Field label="Slide Number">
-          <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="11" />
+          <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="14" />
         </Field>
       </div>
       <Field label="Slide Title">
         <input style={inputStyle} value={s.title} onChange={e => u('title', e.target.value)} placeholder="WHY INVEST IN MADHAV HIGHSTREET?" />
       </Field>
 
-      {cards.map((card, i) => (
-        <div key={i} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.title}</div>
-          <Field label="Label">
-            <textarea style={textareaStyle} value={(s as any)[card.labelK]} onChange={e => u(card.labelK, e.target.value)} placeholder={card.defaultLabel} />
-          </Field>
+      {/* Building Image Upload */}
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Background Building Photo</div>
+        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 10 }}>Upload the building image shown on the right side of the slide (dark overlay applied automatically).</p>
+        <Field label="Building Image">
+          <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('buildingImage', e.target.files[0])} />
+          {s.buildingImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.buildingImage.name}</span>}
+        </Field>
+      </div>
+
+      {/* Category Selection for Icons */}
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Select Categories ({(s.selectedCategories || []).length}/7 selected)</div>
+        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 12 }}>Click to select up to 7 categories. These icons will be displayed on the slide with Lucide icons.</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {PREDEFINED_CATEGORIES.map(cat => {
+            const selectedCats = s.selectedCategories || [];
+            const isSelected = selectedCats.includes(cat.id);
+            const Icon = cat.icon;
+            return (
+              <div
+                key={cat.id}
+                onClick={() => {
+                  if (isSelected) {
+                    u('selectedCategories', selectedCats.filter((id: string) => id !== cat.id));
+                  } else if (selectedCats.length < 7) {
+                    u('selectedCategories', [...selectedCats, cat.id]);
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, userSelect: 'none',
+                  padding: '6px 12px', borderRadius: 20, cursor: 'pointer',
+                  fontSize: 12, fontWeight: isSelected ? 600 : 500,
+                  background: isSelected ? '#4B247A' : '#fff',
+                  color: isSelected ? '#fff' : '#4b5563',
+                  border: `1px solid ${isSelected ? '#4B247A' : '#d1d5db'}`,
+                  transition: 'all 0.2s',
+                  opacity: (!isSelected && selectedCats.length >= 7) ? 0.5 : 1,
+                  pointerEvents: (!isSelected && selectedCats.length >= 7) ? 'none' : 'auto',
+                }}
+              >
+                <Icon size={14} />
+                {cat.name.replace(/\\n/g, ' ')}
+              </div>
+            );
+          })}
         </div>
-      ))}
+      </div>
     </div>
   );
 }
@@ -1817,8 +1885,18 @@ export default function StepperApp() {
   // Helper: convert a File to base64 data URL
   const fileToBase64 = (file: File | Blob): Promise<string> => {
     return new Promise((resolve) => {
+      // Validate that file is actually a File or Blob
+      if (!(file instanceof File) && !(file instanceof Blob)) {
+        console.error('fileToBase64: Expected File or Blob, got', typeof file, file);
+        resolve('');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = () => {
+        console.error('FileReader error');
+        resolve('');
+      };
       reader.readAsDataURL(file);
     });
   };
@@ -1850,16 +1928,25 @@ export default function StepperApp() {
 
   // Helper: get base64 from File or fallback URL, returns null if both fail
   const getImageBase64 = async (file: any, fallbackUrl: string): Promise<string | null> => {
+    // If file is a string, it might be a URL or a placeholder
     if (typeof file === 'string') {
+      // If it's a placeholder string from JSON serialization, skip it
+      if (file.startsWith('[File:') || file === '' || file === 'null') {
+        return await urlToBase64(fallbackUrl).catch(() => null);
+      }
+      // Otherwise treat it as a URL
       try {
         return await urlToBase64(file);
       } catch {
         return await urlToBase64(fallbackUrl).catch(() => null);
       }
     }
+    // If it's a File or Blob, convert to base64
     if (file instanceof File || file instanceof Blob) {
-      return await fileToBase64(file);
+      const base64 = await fileToBase64(file);
+      return base64 || null;
     }
+    // If it's null, undefined, or any other type, use fallback
     try {
       return await urlToBase64(fallbackUrl);
     } catch {
@@ -2016,13 +2103,13 @@ export default function StepperApp() {
           line: { color: fontColor, width: 0.5, dashType: 'solid' },
           rectRadius: 0.05,
         });
-        
+
         // Icon
         slide1.addText(cat.emoji, {
           x: xPos, y: catY, w: catW, h: catH * 0.55, fontSize: 16,
           align: 'center', valign: 'middle',
         });
-        
+
         // Name
         slide1.addText(cat.name.replace(/\\n/g, '\n'), {
           x: xPos, y: catY + catH * 0.5, w: catW, h: catH * 0.5, fontSize: 6,
@@ -3002,82 +3089,96 @@ export default function StepperApp() {
         });
       }
 
-      // ==================== SLIDE 11: WHY INVEST ====================
-      const slide11 = pptx.addSlide();
-      slide11.background = { color: 'FFFFFF' };
+      // ==================== SLIDE 14: WHY INVEST ====================
+      const slide14 = pptx.addSlide();
+      slide14.background = { color: '1a0a2e' };
+
+      // Building image on right side
+      const buildingImageData = await getImageBase64(
+        data.slide11.buildingImage,
+        'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
+      );
+
+      if (buildingImageData) {
+        slide14.addImage({
+          data: buildingImageData,
+          x: 5.0, y: 0, w: 5.33, h: 7.5,
+          sizing: { type: 'cover', w: 5.33, h: 7.5 },
+        });
+        // Dark gradient overlay from left
+        slide14.addShape(pptx.ShapeType.rect, {
+          x: 5.0, y: 0, w: 2.0, h: 7.5,
+          fill: { color: '1a0a2e', transparency: 40 },
+          line: { type: 'none' }
+        });
+      }
 
       // Header
-      slide11.addText(data.slide11.slideNumber || '11', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
+      slide14.addText(data.slide11.slideNumber || '14', {
+        x: 0.5, y: 0.8, w: 0.6, h: 0.6, fontSize: 14, bold: true,
         color: 'FFFFFF', fill: { color: '3d1a6e' },
         align: 'center', valign: 'middle',
+        rectRadius: 0.1,
       });
 
-      slide11.addText(data.slide11.title || 'WHY INVEST IN MADHAV HIGHSTREET?', {
-        x: 1.15, y: 0.9, w: 8, h: 1.1, fontSize: 22, bold: true, color: '3d1a6e', fontFace: 'Arial', lineSpacing: 1.1,
+      slide14.addText('WHY INVEST IN', {
+        x: 1.15, y: 0.9, w: 4, h: 0.6, fontSize: 22, bold: true, color: 'FFFFFF', fontFace: 'Arial', lineSpacing: 1.1,
+      });
+      slide14.addText('MADHAV HIGHSTREET?', {
+        x: 1.15, y: 1.45, w: 4, h: 0.55, fontSize: 22, bold: true, color: 'f97316', fontFace: 'Arial', lineSpacing: 1.1,
       });
 
-      const row1Cards = [
-        { label: data.slide11.card1Label || 'Prime Location\nHigh Visibility', icon: '📍' },
-        { label: data.slide11.card2Label || 'Surrounded by\nPremium Brands', icon: '🛍️' },
-        { label: data.slide11.card3Label || 'High Footfall\nCatchment', icon: '👥' },
-        { label: data.slide11.card4Label || 'Modern Architecture\n& Design', icon: '🏢' },
-      ];
-
-      const row2Cards = [
-        { label: data.slide11.card5Label || 'Excellent\nConnectivity & Access', icon: '🛣️' },
-        { label: data.slide11.card6Label || 'Strong Investment\n& Returns', icon: '📈' },
-        { label: data.slide11.card7Label || 'Strong Investment\nPotential', icon: '📊' },
-      ];
-
-      // Draw Row 1
-      row1Cards.forEach((item, i) => {
-        const xPos = 0.5 + i * 2.3;
-        const yPos = 2.4;
-        slide11.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos, w: 2.1, h: 1.6,
-          fill: { color: 'f9fafb' },
-          line: { color: 'e5e7eb', width: 1 },
-          rectRadius: 0.08,
-        });
-        slide11.addShape(pptx.ShapeType.ellipse, {
-          x: xPos + 0.85, y: yPos + 0.15, w: 0.4, h: 0.4,
-          fill: { color: 'fff7ed' },
-          line: { color: 'ffedd5', width: 1 },
-        });
-        slide11.addText(item.icon, {
-          x: xPos + 0.85, y: yPos + 0.15, w: 0.4, h: 0.4, fontSize: 11,
-          align: 'center', valign: 'middle',
-        });
-        slide11.addText(item.label.toUpperCase(), {
-          x: xPos + 0.1, y: yPos + 0.65, w: 1.9, h: 0.8,
-          fontSize: 8, bold: true, color: '3d1a6e',
-          align: 'center', valign: 'middle',
-        });
+      // Orange accent line
+      slide14.addShape(pptx.ShapeType.rect, {
+        x: 0.5, y: 2.1, w: 1.5, h: 0.05,
+        fill: { color: 'f97316' },
+        line: { type: 'none' }
       });
 
-      // Draw Row 2
-      row2Cards.forEach((item, i) => {
-        const xPos = 1.65 + i * 2.3;
-        const yPos = 4.3;
-        slide11.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos, w: 2.1, h: 1.6,
-          fill: { color: 'f9fafb' },
-          line: { color: 'e5e7eb', width: 1 },
-          rectRadius: 0.08,
+      // Get selected categories for slide 14 (up to 7)
+      const selectedCategories14 = (data.slide11.selectedCategories || []).slice(0, 7).map(id =>
+        PREDEFINED_CATEGORIES.find(c => c.id === id) || PREDEFINED_CATEGORIES[0]
+      );
+
+      // Ensure we have 7 items (fill with defaults if needed)
+      const categoriesToShow = [
+        ...selectedCategories14.slice(0, 7),
+        ...Array(Math.max(0, 7 - selectedCategories14.length)).fill(PREDEFINED_CATEGORIES[0])
+      ].slice(0, 7);
+
+      // Draw 7 cards in one row
+      const cardW14 = 1.3;
+      const cardGap14 = 0.15;
+      const startX14 = (10 - (7 * cardW14 + 6 * cardGap14)) / 2;
+      const yPos = 2.6;
+
+      categoriesToShow.forEach((cat, i) => {
+        const xPos = startX14 + i * (cardW14 + cardGap14);
+
+        // Card background with glass effect
+        slide14.addShape(pptx.ShapeType.rect, {
+          x: xPos, y: yPos, w: cardW14, h: 1.8,
+          fill: { color: 'FFFFFF', transparency: 90 },
+          line: { color: 'FFFFFF', width: 1, transparency: 70 },
+          rectRadius: 0.1,
         });
-        slide11.addShape(pptx.ShapeType.ellipse, {
-          x: xPos + 0.85, y: yPos + 0.15, w: 0.4, h: 0.4,
-          fill: { color: 'fff7ed' },
-          line: { color: 'ffedd5', width: 1 },
+
+        // Icon circle
+        slide14.addShape(pptx.ShapeType.ellipse, {
+          x: xPos + 0.45, y: yPos + 0.15, w: 0.4, h: 0.4,
+          fill: { color: 'FFFFFF', transparency: 85 },
+          line: { color: 'FFFFFF', width: 1, transparency: 60 },
         });
-        slide11.addText(item.icon, {
-          x: xPos + 0.85, y: yPos + 0.15, w: 0.4, h: 0.4, fontSize: 11,
+
+        // Use emoji as fallback for PPTX (Lucide icons can't be directly exported)
+        slide14.addText(cat.emoji, {
+          x: xPos + 0.45, y: yPos + 0.15, w: 0.4, h: 0.4, fontSize: 12,
           align: 'center', valign: 'middle',
         });
-        slide11.addText(item.label.toUpperCase(), {
-          x: xPos + 0.1, y: yPos + 0.65, w: 1.9, h: 0.8,
-          fontSize: 8, bold: true, color: '3d1a6e',
+
+        slide14.addText(cat.name.replace(/\\n/g, ' ').toUpperCase(), {
+          x: xPos + 0.05, y: yPos + 0.65, w: cardW - 0.1, h: 1.0,
+          fontSize: 7, bold: true, color: 'FFFFFF',
           align: 'center', valign: 'middle',
         });
       });
@@ -3364,11 +3465,15 @@ export default function StepperApp() {
           </div>
         </div>
       )}
-      <JsonPreviewPanel 
-        isOpen={isJsonPanelOpen} 
-        onClose={() => setIsJsonPanelOpen(false)} 
+      <JsonPreviewPanel
+        isOpen={isJsonPanelOpen}
+        onClose={() => setIsJsonPanelOpen(false)}
         onDownloadPPT={handleDownloadPPT}
         isGeneratingPPT={isGenerating}
+        onApply={() => {
+          setIsJsonPanelOpen(false);
+          setShowAllSlides(true);
+        }}
       />
     </div>
   );
