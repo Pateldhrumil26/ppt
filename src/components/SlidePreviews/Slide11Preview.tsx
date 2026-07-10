@@ -17,7 +17,7 @@ export default function Slide11Preview() {
   // Get building image from form upload
   const buildingSrc = s.buildingImage 
     ? getSafeImageUrl(s.buildingImage) 
-    : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
+    : '';
 
   return (
     <SlideShell>
@@ -53,14 +53,14 @@ export default function Slide11Preview() {
             padding: '2px 10px', borderRadius: 4,
             marginBottom: 'clamp(6px,1vw,14px)',
           }}>
-            {s.slideNumber || '14'}
+            {s.slideNumber || ''}
           </div>
 
           <div style={{ fontWeight: 900, fontSize: 'clamp(16px,3.2vw,40px)', color: '#fff', lineHeight: 1.05, letterSpacing: '-0.01em' }}>
             WHY INVEST IN
           </div>
           <div style={{ fontWeight: 900, fontSize: 'clamp(16px,3.2vw,40px)', color: '#fff', lineHeight: 1.05, letterSpacing: '-0.01em', marginBottom: 'clamp(6px,1vw,14px)' }}>
-            {s.title || 'MADHAV HIGHSTREET?'}
+            {s.title || ''}
           </div>
 
           {/* Purple accent underline */}

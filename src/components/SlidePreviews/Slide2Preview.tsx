@@ -7,17 +7,17 @@ export default function Slide2Preview() {
   const hc = '#3d1a6e', ac = '#f97316';
   const imgSrc = s.cityImage
     ? getSafeImageUrl(s.cityImage)
-    : 'https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=2070&auto=format&fit=crop';
+    : '';
 
   const stats = [
-    { icon: Users, v: s.population || '90.6 Lakh+', l: 'Population' },
-    { icon: DollarSign, v: s.gdp || '$135 Billion+', l: 'GDP' },
-    { icon: TrendingUp, v: s.gdpGrowth || '6.7%+', l: 'GDP Growth' },
-    { icon: Landmark, v: 'World\'s 1st', l: s.worldFirst || 'Heritage City With BRTS', hi: true },
-    { icon: Train, v: s.metroKm || '40 KM+', l: 'Metro Network' },
-    { icon: Bus, v: s.brtsKm || '160 KM+', l: 'BRTS Network' },
-    { icon: Plane, v: s.dailyFlights || '130+', l: 'Daily Flights' },
-    { icon: ShoppingBasket, v: 'Top 3', l: s.retailRank || 'Fastest Growing Retail Market', hi: true },
+    { icon: Users, v: s.population || '', l: 'Population' },
+    { icon: DollarSign, v: s.gdp || '', l: 'GDP' },
+    { icon: TrendingUp, v: s.gdpGrowth || '', l: 'GDP Growth' },
+    { icon: Landmark, v: 'World\'s 1st', l: s.worldFirst || '', hi: true },
+    { icon: Train, v: s.metroKm || '', l: 'Metro Network' },
+    { icon: Bus, v: s.brtsKm || '', l: 'BRTS Network' },
+    { icon: Plane, v: s.dailyFlights || '', l: 'Daily Flights' },
+    { icon: ShoppingBasket, v: 'Top 3', l: s.retailRank || '', hi: true },
   ];
 
   const infraLines = (s.infrastructure || '').split('\n').filter(Boolean);
@@ -30,7 +30,7 @@ export default function Slide2Preview() {
       <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
       {/* Right image */}
       <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '45%' }}>
-        <img src={imgSrc} alt="city" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {imgSrc && <img src={imgSrc} alt="city" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,transparent 40%,white 100%)' }} />
       </div>
       {/* Left content */}
@@ -39,7 +39,7 @@ export default function Slide2Preview() {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '3%' }}>
           <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>02</div>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1 }}>{s.cityName || 'AHMEDABAD'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1 }}>{s.cityName || ''}</div>
             <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1 }}>AT A GLANCE</div>
             <div style={{ fontSize: 'clamp(5px,0.85vw,10px)', color: '#555', marginTop: 2 }}>A Thriving City. A Growing Opportunity.</div>
           </div>

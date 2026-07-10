@@ -23,7 +23,7 @@ const DownloadPPT = () => {
         const backgroundImageData = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = (e) => resolve(e.target?.result as string);
-          reader.readAsDataURL(backgroundImage);
+          reader.readAsDataURL(backgroundImage as any);
         });
         slide1.background = { data: backgroundImageData };
       } else {

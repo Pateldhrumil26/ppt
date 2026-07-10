@@ -8,7 +8,7 @@ export default function Slide1Preview() {
   const fc = s.fontColor || '#FFFFFF';
   const bgSrc = s.backgroundImage
     ? getSafeImageUrl(s.backgroundImage)
-    : 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?q=80&w=2070&auto=format&fit=crop';
+    : '';
   const logoSrc = s.logo ? getSafeImageUrl(s.logo) : null;
 
   // Get selected category items
@@ -18,7 +18,7 @@ export default function Slide1Preview() {
     <SlideShell>
       <div style={{ position: 'absolute', inset: 0, background: theme }} />
       <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '55%', background: theme }}>
-        <img src={bgSrc} alt="bg" style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'right center' }} />
+        {bgSrc && <img src={bgSrc} alt="bg" style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'right center' }} />}
         <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(270deg,transparent 60%,${theme} 100%)` }} />
       </div>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '4%', color: fc }}>
@@ -26,16 +26,16 @@ export default function Slide1Preview() {
         <div style={{ maxWidth: '50%', flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div>
             <div style={{ display: 'inline-block', background: theme, border: `2px solid ${fc}44`, borderRadius: 5, padding: '3px 10px', fontWeight: 800, fontSize: 'clamp(9px,1.4vw,16px)', marginBottom: '3%' }}>
-              {s.slideNumber || '01'}
+              {s.slideNumber || ''}
             </div>
             <h1 style={{ fontSize: 'clamp(16px,4vw,46px)', fontWeight: 900, lineHeight: 1, marginBottom: '2%', letterSpacing: '-0.02em', whiteSpace: 'pre-line' }}>
-              {s.title || 'MADHAV\nHIGHSTREET'}
+              {s.title || ''}
             </h1>
             <p style={{ fontSize: 'clamp(7px,1.2vw,14px)', fontWeight: 600, opacity: 0.85, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2%', whiteSpace: 'pre-line' }}>
-              {s.subtitle || 'THE NEXT PREMIUM RETAIL DESTINATION'}
+              {s.subtitle || ''}
             </p>
             <p style={{ fontSize: 'clamp(6px,1vw,12px)', opacity: 0.7, marginBottom: '3%', whiteSpace: 'pre-line' }}>
-              {s.address || 'SINDHU BHAVAN ROAD,\nBODAKDEV, AHMEDABAD'}
+              {s.address || ''}
             </p>
             <div style={{ width: '12%', height: 2, background: fc, opacity: 0.6, marginBottom: '3%' }} />
           </div>
@@ -50,8 +50,8 @@ export default function Slide1Preview() {
                 : <div style={{ width: 'clamp(24px,3.5vw,45px)', height: 'clamp(24px,3.5vw,45px)', borderRadius: 4, background: '#ff6b00', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 'clamp(7px,1vw,12px)', color: '#fff', flexShrink: 0 }}>A</div>
               }
               <div>
-                <div style={{ fontWeight: 800, fontSize: 'clamp(7px,1.2vw,15px)' }}>{s.companyName || 'AESTHETIC ARC'}</div>
-                <div style={{ fontSize: 'clamp(5px,0.75vw,9px)', opacity: 0.55 }}>{s.companyTagline || 'PROPERTY LEASING COMPANY'}</div>
+                <div style={{ fontWeight: 800, fontSize: 'clamp(7px,1.2vw,15px)' }}>{s.companyName || ''}</div>
+                <div style={{ fontSize: 'clamp(5px,0.75vw,9px)', opacity: 0.55 }}>{s.companyTagline || ''}</div>
               </div>
             </div>
           </div>

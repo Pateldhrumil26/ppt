@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 
-export const SlideShell = ({ children }: { children: React.ReactNode }) => (
+export const SlideShell = ({ children }: { children: ReactNode }) => (
   <div style={{
     width: '100%',
     aspectRatio: '16/9',

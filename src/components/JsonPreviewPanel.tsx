@@ -5,12 +5,12 @@ import { Code, X, Save, Copy, Download, Upload, CheckCircle } from 'lucide-react
 interface JsonPreviewPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  onDownloadPPT: () => void;
-  isGeneratingPPT: boolean;
+  onDownloadPDF: () => void;
+  isGeneratingPDF: boolean;
   onApply?: () => void;
 }
 
-const JsonPreviewPanel: React.FC<JsonPreviewPanelProps> = ({ isOpen, onClose, onDownloadPPT, isGeneratingPPT, onApply }) => {
+const JsonPreviewPanel: React.FC<JsonPreviewPanelProps> = ({ isOpen, onClose, onDownloadPDF, isGeneratingPDF, onApply }) => {
   const { data, setData } = useFormData();
   const [jsonText, setJsonText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +19,7 @@ const JsonPreviewPanel: React.FC<JsonPreviewPanelProps> = ({ isOpen, onClose, on
 
   // Serialize data to string, converting File objects to placeholder strings
   const serializeData = (dataToSerialize: any) => {
-    return JSON.stringify(dataToSerialize, (key, value) => {
+    return JSON.stringify(dataToSerialize, (_key, value) => {
       if (value instanceof File) return `[File: ${value.name}]`;
       return value;
     }, 2);
@@ -48,8 +48,36 @@ const JsonPreviewPanel: React.FC<JsonPreviewPanelProps> = ({ isOpen, onClose, on
         }
       };
       
+      // Recursively merge source object into target object to prevent missing keys
+      const deepMerge = (target: any, source: any): any => {
+        if (typeof source !== 'object' || source === null) {
+          return source;
+        }
+        if (Array.isArray(source)) {
+          return source.map((item, index) => {
+            if (target && target[index] !== undefined) {
+              return deepMerge(target[index], item);
+            }
+            return item;
+          });
+        }
+        const merged = { ...target };
+        for (const key in source) {
+          if (Object.prototype.hasOwnProperty.call(source, key)) {
+            const sourceVal = source[key];
+            const targetVal = target?.[key];
+            if (typeof sourceVal === 'object' && sourceVal !== null && typeof targetVal === 'object' && targetVal !== null) {
+              merged[key] = deepMerge(targetVal, sourceVal);
+            } else {
+              merged[key] = sourceVal;
+            }
+          }
+        }
+        return merged;
+      };
+
       restoreFiles(parsed, data);
-      setData(parsed);
+      setData(deepMerge(data, parsed));
       setError(null);
       
       // Show success indicator briefly
@@ -145,11 +173,11 @@ const JsonPreviewPanel: React.FC<JsonPreviewPanelProps> = ({ isOpen, onClose, on
           <div style={{ flex: 1 }} />
           
           <button 
-            onClick={onDownloadPPT} 
-            disabled={isGeneratingPPT}
-            style={{ ...toolbarBtnStyle, background: '#14532d', color: '#fff', borderColor: '#166534', opacity: isGeneratingPPT ? 0.7 : 1 }}
+            onClick={onDownloadPDF} 
+            disabled={isGeneratingPDF}
+            style={{ ...toolbarBtnStyle, background: '#14532d', color: '#fff', borderColor: '#166534', opacity: isGeneratingPDF ? 0.7 : 1 }}
           >
-            <Download size={16} /> {isGeneratingPPT ? 'Generating PPT...' : 'Download PPT'}
+            <Download size={16} /> {isGeneratingPDF ? 'Generating PDF...' : 'Download PDF'}
           </button>
         </div>
 
