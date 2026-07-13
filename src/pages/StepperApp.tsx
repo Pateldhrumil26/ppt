@@ -1,37 +1,88 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useFormData } from '../context/FormContext';
+import { useSlideFinalization } from '../context/SlideFinalizationContext';
+import { generateSnapshotPDF } from '../utils/pdf/snapshotPdfGenerator';
+import html2canvas from 'html2canvas';
+import JsonPreviewPanel from '../components/JsonPreviewPanel';
 import {
   Shirt, ShoppingBag, Leaf, Utensils, MonitorSmartphone, ShoppingCart,
   Building2, HeartPulse, Ticket, Gamepad2, Users, DollarSign, TrendingUp,
   Landmark, Train, Bus, Plane, ShoppingBasket, MapPin, Route,
   CheckCircle2, Loader2, Clock, Calendar, Diamond, ChevronRight,
   ChevronLeft, Download, Eye, Ruler, Expand, Car, Map, Briefcase, Sun, Building, Gem, ArrowUpDown, ScanLine, BarChart3,
-  Phone, Mail, Globe,
+  Phone, Mail, Globe, Code,
+  Pill, Coffee, ChefHat, CreditCard, Dumbbell, Scissors, Sparkles,
+  Footprints, Baby, Home, Tv, BookOpen, Glasses, Stethoscope
 } from 'lucide-react';
 
-// Import pptxgenjs dynamically
-let PptxGenJS: any = null;
-const loadPptxGenJS = async () => {
-  if (!PptxGenJS) {
-    const module = await import('pptxgenjs');
-    PptxGenJS = module.default;
+
+
+// Helper to avoid dark line rendering artifacts in linear-gradients by creating a transparent version of a hex color
+function getTransparentColor(hex: string): string {
+  if (!hex || typeof hex !== 'string') return 'rgba(255,255,255,0)';
+  const cleaned = hex.trim();
+  if (cleaned.startsWith('#')) {
+    const r = parseInt(cleaned.slice(1, 3), 16) || 0;
+    const g = parseInt(cleaned.slice(3, 5), 16) || 0;
+    const b = parseInt(cleaned.slice(5, 7), 16) || 0;
+    return `rgba(${r},${g},${b},0)`;
   }
-  return PptxGenJS;
+  return 'rgba(255,255,255,0)';
+}
+
+// Helper to safely get an image URL whether it's a File object or a string URL
+const getSafeImageUrl = (source: any): string | undefined => {
+  if (!source) return undefined;
+  if (typeof source === 'string') return source;
+  if (source instanceof File || source instanceof Blob) {
+    try {
+      return URL.createObjectURL(source);
+    } catch (e) {
+      return undefined;
+    }
+  }
+  return undefined;
 };
+
+// Helper to get safe file name for display (handles string URLs and File objects)
+const getFileName = (source: any): string => {
+  if (!source) return '';
+  if (typeof source === 'string') {
+    try {
+      const url = new URL(source);
+      const pathname = url.pathname;
+      return pathname.substring(pathname.lastIndexOf('/') + 1) || 'Sample Image';
+    } catch {
+      return 'Sample Image';
+    }
+  }
+  return source.name || 'Uploaded File';
+};
+
 
 // ─────────────────────── SLIDE PREVIEW COMPONENTS ───────────────────────────
 
-const CATEGORIES = [
-  { name: 'Fashion', icon: Shirt },
-  { name: 'Retail', icon: ShoppingBag },
-  { name: 'Lifestyle', icon: Leaf },
-  { name: 'F&B', icon: Utensils },
-  { name: 'Electronics', icon: MonitorSmartphone },
-  { name: 'Hypermarket', icon: ShoppingCart },
-  { name: 'Corporate\nOffices', icon: Building2 },
-  { name: 'Health &\nWellness', icon: HeartPulse },
-  { name: 'Multiplex', icon: Ticket },
-  { name: 'Game Zone', icon: Gamepad2 },
+// Import slide preview components (only existing ones)
+// import Slide1Preview from '../components/SlidePreviews/Slide1Preview';
+// import Slide2Preview from '../components/SlidePreviews/Slide2Preview';
+
+// Export PREDEFINED_CATEGORIES for use in other components (15 investment-based categories)
+export const PREDEFINED_CATEGORIES = [
+  { id: 'cat_1', name: 'Prime Location', icon: MapPin, emoji: '📍' },
+  { id: 'cat_2', name: 'Premium Brands', icon: Gem, emoji: '💎' },
+  { id: 'cat_3', name: 'High Footfall', icon: Users, emoji: '👥' },
+  { id: 'cat_4', name: 'Modern Architecture', icon: Building2, emoji: '🏢' },
+  { id: 'cat_5', name: 'Excellent Connectivity', icon: Route, emoji: '🛣️' },
+  { id: 'cat_6', name: 'Strong Investment Returns', icon: TrendingUp, emoji: '📈' },
+  { id: 'cat_7', name: 'Future Growth', icon: ArrowUpDown, emoji: '↗️' },
+  { id: 'cat_8', name: 'Retail Opportunity', icon: ShoppingBag, emoji: '🛍️' },
+  { id: 'cat_9', name: 'F&B Potential', icon: Utensils, emoji: '🍽️' },
+  { id: 'cat_10', name: 'Corporate Hub', icon: Briefcase, emoji: '💼' },
+  { id: 'cat_11', name: 'Lifestyle Destination', icon: Leaf, emoji: '🌿' },
+  { id: 'cat_12', name: 'Entertainment Zone', icon: Ticket, emoji: '🎬' },
+  { id: 'cat_13', name: 'Health & Wellness', icon: HeartPulse, emoji: '❤️' },
+  { id: 'cat_14', name: 'Smart Design', icon: Diamond, emoji: '💠' },
+  { id: 'cat_15', name: 'High Visibility', icon: Eye, emoji: '👁️' },
 ];
 
 const SlideShell = ({ children }: { children: React.ReactNode }) => (
@@ -48,55 +99,182 @@ const SlideShell = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
+/**
+ * Reusable global footer component for slide previews.
+ * Renders a minimal branded footer bar at the bottom of the slide with:
+ *   - Aesthetic Arc logo (from slide1 or slideContact)
+ *   - Company name
+ *   - City name (from slide2)
+ *   - Website
+ *   - Slide number
+ * Automatically adapts to dark/light backgrounds via the `isDark` prop.
+ */
+function SlidePreviewFooter({ slideNum, isDark = false }: { slideNum: string; isDark?: boolean }) {
+  const { data } = useFormData();
+  const logoSrc = data.slideContact.companyLogo
+    ? getSafeImageUrl(data.slideContact.companyLogo)
+    : data.slide1.logo
+      ? getSafeImageUrl(data.slide1.logo)
+      : null;
+  const companyName = data.slideContact.companyName || data.slide1.companyName || '';
+  const cityName = (data.slide2.cityName || 'Ahmedabad').toUpperCase();
+  const website = (data.slideContact.website || 'www.aestheticarc.com').toLowerCase();
+
+  const dividerColor = isDark ? 'rgba(255,255,255,0.15)' : '#E2E8F0';
+  const textColor = isDark ? 'rgba(255,255,255,0.6)' : '#324D7B';
+  const nameColor = isDark ? '#ffffff' : '#7D3C70';
+
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 'clamp(28px, 4.8%, 42px)',
+      borderTop: '1px solid ' + dividerColor,
+      display: 'flex',
+      alignItems: 'center',
+      padding: '0 5%',
+      gap: 'clamp(4px, 0.8vw, 10px)',
+      zIndex: 10,
+      background: isDark ? 'rgba(13, 4, 32, 0.45)' : 'rgba(255, 255, 255, 0.82)',
+      backdropFilter: 'blur(8px)',
+      fontFamily: "'Montserrat', sans-serif",
+    }}>
+      {/* Logo */}
+      {logoSrc ? (
+        <img
+          src={logoSrc}
+          alt="Logo"
+          style={{
+            width: 'clamp(16px, 2.2vw, 24px)',
+            height: 'clamp(16px, 2.2vw, 24px)',
+            objectFit: 'contain',
+            borderRadius: 4,
+            flexShrink: 0,
+          }}
+        />
+      ) : (
+        <div style={{
+          width: 'clamp(16px, 2.2vw, 24px)',
+          height: 'clamp(16px, 2.2vw, 24px)',
+          borderRadius: 4,
+          background: '#7D3C70',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 'clamp(8px, 1.1vw, 12px)',
+          fontWeight: 800,
+          color: '#fff',
+          flexShrink: 0,
+        }}>
+          A
+        </div>
+      )}
+
+      {/* Company Name */}
+      {companyName && (
+        <span style={{
+          fontSize: 'clamp(6px, 0.85vw, 12px)',
+          fontWeight: 800,
+          color: nameColor,
+          whiteSpace: 'nowrap',
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+        }}>
+          {companyName}
+        </span>
+      )}
+
+      {/* Separator dot */}
+      <span style={{ fontSize: 'clamp(4px, 0.6vw, 8px)', color: '#FF8435', fontWeight: 'bold' }}>•</span>
+
+      {/* City Name */}
+      <span style={{
+        fontSize: 'clamp(6px, 0.8vw, 11px)',
+        fontWeight: 600,
+        color: textColor,
+        whiteSpace: 'nowrap',
+        letterSpacing: '0.02em',
+      }}>
+        {cityName}
+      </span>
+
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* Website */}
+      <span style={{
+        fontSize: 'clamp(6px, 0.8vw, 11px)',
+        color: textColor,
+        whiteSpace: 'nowrap',
+        fontWeight: 500,
+      }}>
+        {website}
+      </span>
+    </div>
+  );
+}
+
 function Slide1Preview() {
   const { data: { slide1: s } } = useFormData();
   const theme = s.themeColor || '#3d1a6e';
   const fc = s.fontColor || '#FFFFFF';
-  const bgSrc = s.backgroundImage
-    ? URL.createObjectURL(s.backgroundImage)
-    : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
-  const logoSrc = s.logo ? URL.createObjectURL(s.logo) : null;
+  const bgSrc = (s.backgroundImage ? getSafeImageUrl(s.backgroundImage) : null) || 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200&auto=format&fit=crop';
+  const logoSrc = s.logo ? getSafeImageUrl(s.logo) : null;
+
+  // Get selected category items
+  const selectedCategories = (s.selectedCategories || []).map(id => PREDEFINED_CATEGORIES.find(c => c.id === id) || PREDEFINED_CATEGORIES[0]);
 
   return (
     <SlideShell>
-      <img src={bgSrc} alt="bg" style={{ position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover' }} />
-      <div style={{ position:'absolute',inset:0, background:`linear-gradient(90deg,${theme}f0 0%,${theme}cc 40%,${theme}66 65%,transparent 100%)` }} />
-      <div style={{ position:'absolute',inset:0,display:'flex',flexDirection:'column',justifyContent:'space-between',padding:'4%',color:fc }}>
+      <div style={{ position: 'absolute', inset: 0, background: theme }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '55%' }}>
+        <img src={bgSrc} alt="bg" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(270deg,${getTransparentColor(theme)} 60%,${theme} 100%)` }} />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '5%', color: fc }}>
         {/* Top */}
-        <div style={{ maxWidth:'50%' }}>
-          <div style={{ display:'inline-block',background:theme,border:`2px solid ${fc}44`,borderRadius:5,padding:'3px 10px',fontWeight:800,fontSize:'clamp(9px,1.4vw,16px)',marginBottom:'3%' }}>
-            {s.slideNumber||'01'}
+        <div style={{ maxWidth: '50%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div>
+            <div style={{ display: 'inline-block', background: theme, border: `2px solid ${fc}44`, borderRadius: 5, padding: '3px 10px', fontWeight: 800, fontSize: 'clamp(9px,1.4vw,16px)', marginBottom: '3%' }}>
+              {s.slideNumber || ''}
+            </div>
+            <h1 style={{ fontSize: 'clamp(16px,4vw,46px)', fontWeight: 900, lineHeight: 1, marginBottom: '2%', letterSpacing: '-0.02em', whiteSpace: 'pre-line' }}>
+              {s.title || ''}
+            </h1>
+            <p style={{ fontSize: 'clamp(7px,1.2vw,14px)', fontWeight: 600, opacity: 0.85, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2%', whiteSpace: 'pre-line' }}>
+              {s.subtitle || ''}
+            </p>
+            <p style={{ fontSize: 'clamp(6px,1vw,12px)', opacity: 0.7, marginBottom: '3%', whiteSpace: 'pre-line' }}>
+              {s.address || ''}
+            </p>
+            <div style={{ width: '12%', height: 2, background: fc, opacity: 0.6, marginBottom: '3%' }} />
           </div>
-          <h1 style={{ fontSize:'clamp(16px,4vw,46px)',fontWeight:900,lineHeight:1,marginBottom:'2%',letterSpacing:'-0.02em',whiteSpace:'pre-line' }}>
-            {s.title||'MADHAV\nHIGHSTREET'}
-          </h1>
-          <p style={{ fontSize:'clamp(7px,1.2vw,14px)',fontWeight:600,opacity:0.85,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'2%',whiteSpace:'pre-line' }}>
-            {s.subtitle||'THE NEXT PREMIUM RETAIL DESTINATION'}
-          </p>
-          <p style={{ fontSize:'clamp(6px,1vw,12px)',opacity:0.7,marginBottom:'3%',whiteSpace:'pre-line' }}>
-            {s.address||'SINDHU BHAVAN ROAD,\nBODAKDEV, AHMEDABAD'}
-          </p>
-          <div style={{ width:'12%',height:2,background:fc,opacity:0.6,marginBottom:'3%' }} />
-          <p style={{ fontSize:'clamp(5px,0.8vw,10px)',opacity:0.55,marginBottom:'1%' }}>Presented by</p>
-          <div style={{ display:'flex',alignItems:'center',gap:8 }}>
-            {logoSrc
-              ? <img src={logoSrc} alt="logo" style={{ width:'clamp(18px,2.5vw,32px)',height:'clamp(18px,2.5vw,32px)',borderRadius:'50%',objectFit:'cover' }} />
-              : <div style={{ width:'clamp(18px,2.5vw,30px)',height:'clamp(18px,2.5vw,30px)',borderRadius:4,background:'#ff6b00',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:'clamp(7px,1vw,12px)',color:'#fff',flexShrink:0 }}>A</div>
-            }
-            <div>
-              <div style={{ fontWeight:800,fontSize:'clamp(7px,1.2vw,15px)' }}>{s.companyName||'AESTHETIC ARC'}</div>
-              <div style={{ fontSize:'clamp(5px,0.75vw,9px)',opacity:0.55 }}>{s.companyTagline||'PROPERTY LEASING COMPANY'}</div>
+
+          <div style={{ flex: 1 }} />
+
+          <div style={{ marginBottom: '3%' }}>
+            <p style={{ fontSize: 'clamp(5px,0.8vw,10px)', opacity: 0.55, marginBottom: '1%' }}>Presented by</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {logoSrc && (
+                <img src={logoSrc} alt="logo" style={{ width: 'clamp(24px,3.5vw,45px)', height: 'clamp(24px,3.5vw,45px)', objectFit: 'contain' }} />
+              )}
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 'clamp(7px,1.2vw,15px)' }}>{s.companyName || ''}</div>
+                <div style={{ fontSize: 'clamp(5px,0.75vw,9px)', opacity: 0.55 }}>{s.companyTagline || ''}</div>
+              </div>
             </div>
           </div>
         </div>
         {/* Bottom categories */}
-        <div style={{ display:'grid',gridTemplateColumns:'repeat(10,1fr)',gap:'clamp(2px,0.4vw,5px)' }}>
-          {CATEGORIES.map((c,i)=>{
-            const Icon=c.icon;
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 'clamp(2px,0.5vw,6px)' }}>
+          {selectedCategories.map((c, i) => {
+            const Icon = c.icon;
             return (
-              <div key={i} style={{ background:`${fc}18`,border:`1px solid ${fc}2f`,borderRadius:5,padding:'clamp(3px,0.8vw,8px) clamp(1px,0.3vw,4px)',display:'flex',flexDirection:'column',alignItems:'center',gap:'clamp(1px,0.3vw,3px)' }}>
-                <Icon size="clamp(8px,1.8vw,20px)" strokeWidth={1.5} style={{ color:fc }} />
-                <span style={{ fontSize:'clamp(3px,0.6vw,7px)',color:fc,fontWeight:600,textAlign:'center',lineHeight:1.2,whiteSpace:'pre-line' }}>{c.name}</span>
+              <div key={i} style={{ background: `${fc}18`, border: `1px solid ${fc}2f`, borderRadius: 5, padding: 'clamp(4px,1vw,10px) clamp(2px,0.5vw,5px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(2px,0.4vw,4px)' }}>
+                <Icon size={24} strokeWidth={1.5} style={{ color: fc, width: 'clamp(10px,2vw,24px)', height: 'clamp(10px,2vw,24px)' }} />
+                <span style={{ fontSize: 'clamp(4px,0.7vw,8px)', color: fc, fontWeight: 600, textAlign: 'center', lineHeight: 1.2, whiteSpace: 'pre-line' }}>{c.name.replace(/\\n/g, '\n')}</span>
               </div>
             );
           })}
@@ -107,270 +285,274 @@ function Slide1Preview() {
 }
 
 function Slide2Preview() {
-  const { data:{ slide2:s } } = useFormData();
-  const hc='#3d1a6e', ac='#f97316';
-  const imgSrc = s.cityImage
-    ? URL.createObjectURL(s.cityImage)
-    : 'https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=2070&auto=format&fit=crop';
+  const { data: { slide2: s } } = useFormData();
+  const hc = '#7D3C70', ac = '#FF8435';
+  const imgSrc = (s.cityImage ? getSafeImageUrl(s.cityImage) : null) || 'https://images.unsplash.com/photo-1605649487212-47bdab064df7?q=80&w=800&auto=format&fit=crop';
 
   const stats = [
-    { icon:Users, v:s.population||'90.6 Lakh+', l:'Population' },
-    { icon:DollarSign, v:s.gdp||'$135 Billion+', l:'GDP' },
-    { icon:TrendingUp, v:s.gdpGrowth||'6.7%+', l:'GDP Growth' },
-    { icon:Landmark, v:'World\'s 1st', l:s.worldFirst||'Heritage City With BRTS', hi:true },
-    { icon:Train, v:s.metroKm||'40 KM+', l:'Metro Network' },
-    { icon:Bus, v:s.brtsKm||'160 KM+', l:'BRTS Network' },
-    { icon:Plane, v:s.dailyFlights||'130+', l:'Daily Flights' },
-    { icon:ShoppingBasket, v:'Top 3', l:s.retailRank||'Fastest Growing Retail Market', hi:true },
+    { icon: Users, v: s.population || '', l: 'Population' },
+    { icon: DollarSign, v: s.gdp || '', l: 'GDP' },
+    { icon: TrendingUp, v: s.gdpGrowth || '', l: 'GDP Growth' },
+    { icon: Landmark, v: 'World\'s 1st', l: s.worldFirst || '', hi: true },
+    { icon: Train, v: s.metroKm || '', l: 'Metro Network' },
+    { icon: Bus, v: s.brtsKm || '', l: 'BRTS Network' },
+    { icon: Plane, v: s.dailyFlights || '', l: 'Daily Flights' },
+    { icon: ShoppingBasket, v: 'Top 3', l: s.retailRank || '', hi: true },
   ];
 
-  const infraLines = (s.infrastructure||'').split('\n').filter(Boolean);
-  const half = Math.ceil(infraLines.length/2);
-  const col1 = infraLines.slice(0,half);
+  const infraLines = (s.infrastructure || '').split('\n').filter(Boolean);
+  const half = Math.ceil(infraLines.length / 2);
+  const col1 = infraLines.slice(0, half);
   const col2 = infraLines.slice(half);
 
   return (
     <SlideShell>
-      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
+      <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
       {/* Right image */}
-      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'45%' }}>
-        <img src={imgSrc} alt="city" style={{ width:'100%',height:'100%',objectFit:'cover' }} />
-        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 40%,white 100%)' }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '45%' }}>
+        <img src={imgSrc} alt="city" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,rgba(255,255,255,0) 40%,white 100%)' }} />
       </div>
       {/* Left content */}
-      <div style={{ position:'absolute',inset:0,padding:'4%',paddingRight:'50%',display:'flex',flexDirection:'column',justifyContent:'flex-start' }}>
+      <div style={{ position: 'absolute', inset: 0, padding: '4% 4% 11% 4%', paddingRight: '50%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
         {/* Header */}
-        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'3%' }}>
-          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>02</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '3%' }}>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>02</div>
           <div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.4vw,28px)',color:hc,lineHeight:1 }}>{s.cityName||'AHMEDABAD'}</div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.4vw,28px)',color:ac,lineHeight:1 }}>AT A GLANCE</div>
-            <div style={{ fontSize:'clamp(5px,0.85vw,10px)',color:'#555',marginTop:2 }}>A Thriving City. A Growing Opportunity.</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1 }}>{s.cityName || ''}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1 }}>AT A GLANCE</div>
+            <div style={{ fontSize: 'clamp(5px,0.85vw,10px)', color: '#555', marginTop: 2 }}>A Thriving City. A Growing Opportunity.</div>
           </div>
         </div>
         {/* Stats */}
-        <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'clamp(2px,0.5vw,6px)',marginBottom:'3%' }}>
-          {stats.map((st,i)=>{
-            const Icon=st.icon;
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 'clamp(6px,1vw,12px)', marginBottom: '4%' }}>
+          {stats.map((st, i) => {
+            const Icon = st.icon;
             return (
-              <div key={i} style={{ border:`1px solid ${(st as any).hi?hc:'#e5e7eb'}`,borderRadius:5,padding:'clamp(3px,0.7vw,8px)',background:(st as any).hi?`${hc}09`:'#fff' }}>
-                <Icon size="clamp(7px,1.2vw,14px)" style={{ color:hc,opacity:0.7 }} strokeWidth={1.5} />
-                <div style={{ fontWeight:800,fontSize:'clamp(7px,1.2vw,14px)',color:hc,lineHeight:1.2,marginTop:2 }}>{st.v}</div>
-                <div style={{ fontSize:'clamp(4px,0.65vw,8px)',color:'#666',lineHeight:1.3 }}>{st.l}</div>
+              <div key={i} style={{ 
+                border: `1.5px solid ${(st as any).hi ? hc : '#e5e7eb'}`, 
+                borderRadius: 8, 
+                padding: 'clamp(6px,1.1vw,12px) clamp(4px,0.8vw,10px)', 
+                background: (st as any).hi ? `${hc}08` : '#fff',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                minHeight: 'clamp(62px, 11vw, 110px)',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+              }}>
+                <Icon size="clamp(7px,1.2vw,14px)" style={{ color: hc, opacity: 0.7 }} strokeWidth={1.5} />
+                <div style={{ fontWeight: 800, fontSize: 'clamp(7px,1.2vw,14px)', color: hc, lineHeight: 1.2, marginTop: 2 }}>{st.v}</div>
+                <div style={{ fontSize: 'clamp(4px,0.65vw,8px)', color: '#666', lineHeight: 1.3 }}>{st.l}</div>
               </div>
             );
           })}
         </div>
         {/* Infrastructure */}
         <div>
-          <div style={{ fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:hc,fontSize:'clamp(5px,0.8vw,10px)',marginBottom:'1%' }}>UPCOMING INFRASTRUCTURE</div>
-          <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1px 12px' }}>
-            {col1.map((t,i)=><div key={`a${i}`} style={{ fontSize:'clamp(4px,0.7vw,8px)',color:'#374151',display:'flex',gap:3,alignItems:'center' }}><span style={{ color:hc,fontWeight:700 }}>•</span>{t}</div>)}
-            {col2.map((t,i)=><div key={`b${i}`} style={{ fontSize:'clamp(4px,0.7vw,8px)',color:'#374151',display:'flex',gap:3,alignItems:'center' }}><span style={{ color:hc,fontWeight:700 }}>•</span>{t}</div>)}
+          <div style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: hc, fontSize: 'clamp(5px,0.8vw,10px)', marginBottom: '1%' }}>UPCOMING INFRASTRUCTURE</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', marginTop: '2%' }}>
+            {col1.map((t, i) => <div key={`a${i}`} style={{ fontSize: 'clamp(4px,0.7vw,8px)', color: '#374151', display: 'flex', gap: 3, alignItems: 'center' }}><span style={{ color: hc, fontWeight: 700 }}>•</span>{t}</div>)}
+            {col2.map((t, i) => <div key={`b${i}`} style={{ fontSize: 'clamp(4px,0.7vw,8px)', color: '#374151', display: 'flex', gap: 3, alignItems: 'center' }}><span style={{ color: hc, fontWeight: 700 }}>•</span>{t}</div>)}
           </div>
         </div>
       </div>
+      <SlidePreviewFooter slideNum="02" />
     </SlideShell>
   );
 }
 
 function Slide3Preview() {
-  const { data:{ slide3:s } } = useFormData();
-  const hc='#3d1a6e', ac='#f97316';
-  const imgSrc = s.mapImage
-    ? URL.createObjectURL(s.mapImage)
-    : 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop';
+  const { data: { slide3: s } } = useFormData();
+  const hc = '#7D3C70', ac = '#FF8435';
+  const imgSrc = (s.mapImage ? getSafeImageUrl(s.mapImage) : null) || 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=800&auto=format&fit=crop';
 
   const points = [
-    { icon:MapPin, t:s.point1Title||'2 Mins from SG Highway', d:s.point1Desc||'Excellent Connectivity' },
-    { icon:Route, t:s.point2Title||'Easy Access to SP Ring Road', d:s.point2Desc||'' },
-    { icon:Building2, t:s.point3Title||'Surrounded by Premium', d:s.point3Desc||'Residential & Commercial Developments' },
+    { icon: MapPin, t: s.point1Title || '', d: s.point1Desc || '' },
+    { icon: Route, t: s.point2Title || '', d: s.point2Desc || '' },
+    { icon: Building2, t: s.point3Title || '', d: s.point3Desc || '' },
   ];
 
-  const titleLines = (s.locationTitle||'PREMIUM LOCATION\nTHAT CONNECTS EVERYTHING').split('\n');
+  const titleLines = (s.locationTitle || '').split('\n');
 
   return (
     <SlideShell>
-      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
-      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'56%' }}>
-        <img src={imgSrc} alt="map" style={{ width:'100%',height:'100%',objectFit:'cover',opacity:0.75 }} />
-        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 35%,white 100%)' }} />
+      <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '56%' }}>
+        <img src={imgSrc} alt="map" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,rgba(255,255,255,0) 35%,white 100%)' }} />
       </div>
-      <div style={{ position:'absolute',inset:0,padding:'5%',paddingRight:'52%',display:'flex',flexDirection:'column',justifyContent:'center' }}>
-        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'4%' }}>
-          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>03</div>
+      <div style={{ position: 'absolute', inset: 0, padding: '5% 5% 12% 5%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '4%' }}>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>03</div>
           <div>
-            <div style={{ fontWeight:900,fontSize:'clamp(10px,2.2vw,26px)',color:hc,lineHeight:1.1 }}>{titleLines[0]||'PREMIUM LOCATION'}</div>
-            <div style={{ fontWeight:900,fontSize:'clamp(10px,2.2vw,26px)',color:ac,lineHeight:1.1 }}>{titleLines[1]||'THAT CONNECTS EVERYTHING'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(10px,2.2vw,26px)', color: hc, lineHeight: 1.1 }}>{titleLines[0] || ''}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(10px,2.2vw,26px)', color: ac, lineHeight: 1.1 }}>{titleLines[1] || ''}</div>
           </div>
         </div>
-        <div style={{ marginBottom:'4%',fontSize:'clamp(6px,1vw,12px)',color:'#374151',fontWeight:500,whiteSpace:'pre-line' }}>
-          {s.address||'Sindhu Bhavan Road,\nBodakdev, Ahmedabad'}
+        <div style={{ marginBottom: '4%', fontSize: 'clamp(6px,1vw,12px)', color: '#374151', fontWeight: 500, whiteSpace: 'pre-line' }}>
+          {s.address || ''}
         </div>
-        <div style={{ display:'flex',flexDirection:'column',gap:'clamp(5px,1vw,12px)',marginBottom:'5%' }}>
-          {points.map((p,i)=>{
-            const Icon=p.icon;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(5px,1vw,12px)', marginBottom: '5%' }}>
+          {points.map((p, i) => {
+            const Icon = p.icon;
             return (
-              <div key={i} style={{ display:'flex',alignItems:'flex-start',gap:8 }}>
-                <div style={{ width:'clamp(12px,2vw,24px)',height:'clamp(12px,2vw,24px)',border:`1.5px solid ${ac}`,borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
-                  <Icon size="clamp(6px,1vw,12px)" style={{ color:ac }} strokeWidth={2} />
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ width: 'clamp(12px,2vw,24px)', height: 'clamp(12px,2vw,24px)', border: `1.5px solid ${ac}`, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size="clamp(6px,1vw,12px)" style={{ color: ac }} strokeWidth={2} />
                 </div>
                 <div>
-                  <div style={{ fontWeight:700,color:hc,fontSize:'clamp(6px,1.1vw,13px)' }}>{p.t}</div>
-                  {p.d&&<div style={{ fontSize:'clamp(4px,0.8vw,9px)',color:'#6b7280' }}>{p.d}</div>}
+                  <div style={{ fontWeight: 700, color: hc, fontSize: 'clamp(6px,1.1vw,13px)' }}>{p.t}</div>
+                  {p.d && <div style={{ fontSize: 'clamp(4px,0.8vw,9px)', color: '#6b7280' }}>{p.d}</div>}
                 </div>
               </div>
             );
           })}
         </div>
-        <button style={{ background:ac,color:'#fff',fontWeight:700,fontSize:'clamp(5px,0.9vw,11px)',padding:'clamp(4px,0.8vw,9px) clamp(8px,1.5vw,18px)',borderRadius:30,border:'none',display:'flex',alignItems:'center',gap:5,cursor:'pointer',width:'fit-content' }}>
+        <button style={{ marginTop: 'auto', background: ac, color: '#fff', fontWeight: 700, fontSize: 'clamp(5px,0.9vw,11px)', padding: 'clamp(4px,0.8vw,9px) clamp(8px,1.5vw,18px)', borderRadius: 30, border: 'none', display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', width: 'fit-content' }}>
           <MapPin size="clamp(7px,1vw,12px)" /> VIEW ON GOOGLE MAPS
         </button>
       </div>
+      <SlidePreviewFooter slideNum="03" />
     </SlideShell>
   );
 }
 
 function Slide4Preview() {
-  const { data:{ slide4:s } } = useFormData();
-  const hc='#3d1a6e', ac='#f97316';
-  const imgSrc = s.projectImage
-    ? URL.createObjectURL(s.projectImage)
-    : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
+  const { data: { slide4: s } } = useFormData();
+  const hc = '#7D3C70', ac = '#FF8435';
+  const imgSrc = (s.projectImage ? getSafeImageUrl(s.projectImage) : null) || 'https://images.unsplash.com/photo-1570129476815-ba368ac77011?q=80&w=800&auto=format&fit=crop';
 
   const features = [
-    { icon:Building2, t:s.feature1Title||'Premium Corner Plot', d:s.feature1Desc||'with Wide Frontage' },
-    { icon:Landmark, t:s.feature2Title||'Modern Retail Architecture', d:s.feature2Desc||'with Maximum Visibility' },
-    { icon:Diamond, t:s.feature3Title||'Designed for Premium Brands', d:s.feature3Desc||'& High Footfall' },
-    { icon:Calendar, t:s.possessionLabel||'Possession', d:s.possessionDate||'March 2027' },
-  ];
+    { icon: Building2, t: s.feature1Title || '', d: s.feature1Desc || '' },
+    { icon: Landmark, t: s.feature2Title || '', d: s.feature2Desc || '' },
+    { icon: Diamond, t: s.feature3Title || '', d: s.feature3Desc || '' },
+    { icon: Calendar, t: s.possessionLabel || '', d: s.possessionDate || '' },
+  ].filter(f => f.t || f.d);
 
   return (
     <SlideShell>
-      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
-      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'56%' }}>
-        <img src={imgSrc} alt="project" style={{ width:'100%',height:'100%',objectFit:'cover' }} />
-        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 40%,white 100%)' }} />
-        <div style={{ position:'absolute',bottom:'6%',right:'4%',background:hc,color:'#fff',padding:'clamp(5px,0.9vw,10px) clamp(8px,1.4vw,16px)',borderRadius:7,textAlign:'center' }}>
-          <div style={{ fontSize:'clamp(4px,0.6vw,7px)',letterSpacing:'0.12em',opacity:0.65,marginBottom:2 }}>EXPECTED POSSESSION</div>
-          <div style={{ fontSize:'clamp(8px,1.5vw,17px)',fontWeight:900,letterSpacing:'0.05em' }}>{(s.possessionDate||'MARCH 2027').toUpperCase()}</div>
+      <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '56%' }}>
+        <img src={imgSrc} alt="project" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,rgba(255,255,255,0) 40%,white 100%)' }} />
+        <div style={{ position: 'absolute', bottom: '8%', right: '6%', background: hc, color: '#fff', padding: 'clamp(6px,1vw,11px) clamp(10px,1.6vw,18px)', borderRadius: 8, textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.15)' }}>
+          <div style={{ fontSize: 'clamp(4px,0.6vw,7px)', letterSpacing: '0.12em', opacity: 0.65, marginBottom: 2 }}>EXPECTED POSSESSION</div>
+          <div style={{ fontSize: 'clamp(8px,1.5vw,17px)', fontWeight: 900, letterSpacing: '0.05em' }}>{(s.possessionDate || '').toUpperCase()}</div>
         </div>
       </div>
-      <div style={{ position:'absolute',inset:0,padding:'5%',paddingRight:'52%',display:'flex',flexDirection:'column',justifyContent:'center' }}>
-        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'5%' }}>
-          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>04</div>
+      <div style={{ position: 'absolute', inset: 0, padding: '5% 5% 12% 5%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '5%' }}>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>04</div>
           <div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:hc,lineHeight:1.1 }}>PROJECT</div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:ac,lineHeight:1.1 }}>SHOWCASE</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: hc, lineHeight: 1.1 }}>PROJECT</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: ac, lineHeight: 1.1 }}>SHOWCASE</div>
           </div>
         </div>
-        <div style={{ display:'flex',flexDirection:'column',gap:'clamp(7px,1.3vw,16px)' }}>
-          {features.map((f,i)=>{
-            const Icon=f.icon;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px,1.5vw,18px)' }}>
+          {features.map((f, i) => {
+            const Icon = f.icon;
             return (
-              <div key={i} style={{ display:'flex',alignItems:'flex-start',gap:8 }}>
-                <div style={{ width:'clamp(12px,2vw,24px)',height:'clamp(12px,2vw,24px)',border:`1.5px solid ${ac}`,borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
-                  <Icon size="clamp(6px,1vw,12px)" style={{ color:ac }} strokeWidth={2} />
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ width: 'clamp(12px,2vw,24px)', height: 'clamp(12px,2vw,24px)', border: `1.5px solid ${ac}`, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size="clamp(6px,1vw,12px)" style={{ color: ac }} strokeWidth={2} />
                 </div>
                 <div>
-                  <div style={{ fontWeight:700,color:hc,fontSize:'clamp(6px,1.1vw,13px)' }}>{f.t}</div>
-                  <div style={{ fontSize:'clamp(4px,0.8vw,9px)',color:'#6b7280' }}>{f.d}</div>
+                  <div style={{ fontWeight: 700, color: hc, fontSize: 'clamp(6px,1.1vw,13px)' }}>{f.t}</div>
+                  <div style={{ fontSize: 'clamp(4px,0.8vw,9px)', color: '#6b7280' }}>{f.d}</div>
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+      <SlidePreviewFooter slideNum="04" />
     </SlideShell>
   );
 }
 
 function Slide5Preview() {
-  const { data:{ slide5:s } } = useFormData();
-  const hc='#3d1a6e', ac='#f97316';
-  const imgSrc = s.constructionImage
-    ? URL.createObjectURL(s.constructionImage)
-    : 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2070&auto=format&fit=crop';
+  const { data: { slide5: s } } = useFormData();
+  const hc = '#7D3C70', ac = '#FF8435';
+  const imgSrc = (s.constructionImage ? getSafeImageUrl(s.constructionImage) : null) || 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=800&auto=format&fit=crop';
 
   const items = [
-    { icon:CheckCircle2, t:s.progress1Title||'Foundation', st:s.progress1Status||'Completed' },
-    { icon:Loader2, t:s.progress2Title||'Structure', st:s.progress2Status||'In Progress' },
-    { icon:Clock, t:s.progress3Title||'Finishing', st:s.progress3Status||'Ahead' },
-    { icon:Calendar, t:s.progress4Title||'Possession', st:s.progress4Status||'March 2027' },
-  ];
+    { icon: CheckCircle2, t: s.progress1Title || '', st: s.progress1Status || '' },
+    { icon: Loader2, t: s.progress2Title || '', st: s.progress2Status || '' },
+    { icon: Clock, t: s.progress3Title || '', st: s.progress3Status || '' },
+    { icon: Calendar, t: s.progress4Title || '', st: s.progress4Status || '' },
+  ].filter(it => it.t || it.st);
 
   return (
     <SlideShell>
-      <div style={{ position:'absolute',inset:0,background:'#fff' }} />
-      <div style={{ position:'absolute',right:0,top:0,bottom:0,width:'56%' }}>
-        <img src={imgSrc} alt="construction" style={{ width:'100%',height:'100%',objectFit:'cover' }} />
-        <div style={{ position:'absolute',inset:0,background:'linear-gradient(270deg,transparent 40%,white 100%)' }} />
-        <div style={{ position:'absolute',bottom:'6%',right:'4%',background:hc,color:'#fff',padding:'clamp(5px,0.9vw,10px) clamp(8px,1.4vw,16px)',borderRadius:7,textAlign:'center' }}>
-          <div style={{ fontSize:'clamp(4px,0.6vw,7px)',letterSpacing:'0.12em',opacity:0.65,marginBottom:2 }}>CURRENT STATUS</div>
-          <div style={{ fontSize:'clamp(8px,1.5vw,17px)',fontWeight:900,letterSpacing:'0.05em' }}>{(s.currentStatus||'JUNE 2026').toUpperCase()}</div>
+      <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '56%' }}>
+        <img src={imgSrc} alt="construction" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,rgba(255,255,255,0) 40%,white 100%)' }} />
+        <div style={{ position: 'absolute', bottom: '6%', right: '4%', background: hc, color: '#fff', padding: 'clamp(5px,0.9vw,10px) clamp(8px,1.4vw,16px)', borderRadius: 7, textAlign: 'center' }}>
+          <div style={{ fontSize: 'clamp(4px,0.6vw,7px)', letterSpacing: '0.12em', opacity: 0.65, marginBottom: 2 }}>CURRENT STATUS</div>
+          <div style={{ fontSize: 'clamp(8px,1.5vw,17px)', fontWeight: 900, letterSpacing: '0.05em' }}>{(s.currentStatus || '').toUpperCase()}</div>
         </div>
       </div>
-      <div style={{ position:'absolute',inset:0,padding:'5%',paddingRight:'52%',display:'flex',flexDirection:'column',justifyContent:'center' }}>
-        <div style={{ display:'flex',alignItems:'flex-start',gap:8,marginBottom:'5%' }}>
-          <div style={{ background:hc,color:'#fff',fontWeight:900,fontSize:'clamp(7px,1.2vw,14px)',padding:'3px 8px',borderRadius:4,flexShrink:0 }}>05</div>
+      <div style={{ position: 'absolute', inset: 0, padding: '5% 5% 12% 5%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '5%' }}>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>05</div>
           <div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:hc,lineHeight:1.1 }}>CONSTRUCTION</div>
-            <div style={{ fontWeight:900,fontSize:'clamp(11px,2.6vw,30px)',color:ac,lineHeight:1.1 }}>PROGRESS</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: hc, lineHeight: 1.1 }}>CONSTRUCTION</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: ac, lineHeight: 1.1 }}>PROGRESS</div>
           </div>
         </div>
-        <div style={{ display:'flex',flexDirection:'column',gap:'clamp(7px,1.3vw,16px)' }}>
-          {items.map((it,i)=>{
-            const Icon=it.icon;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(7px,1.3vw,16px)' }}>
+          {items.map((it, i) => {
+            const Icon = it.icon;
             return (
-              <div key={i} style={{ display:'flex',alignItems:'flex-start',gap:8 }}>
-                <div style={{ width:'clamp(12px,2vw,24px)',height:'clamp(12px,2vw,24px)',border:`1.5px solid ${ac}`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
-                  <Icon size="clamp(6px,1vw,12px)" style={{ color:ac }} strokeWidth={2} />
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ width: 'clamp(12px,2vw,24px)', height: 'clamp(12px,2vw,24px)', border: `1.5px solid ${ac}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size="clamp(6px,1vw,12px)" style={{ color: ac }} strokeWidth={2} />
                 </div>
                 <div>
-                  <div style={{ fontWeight:700,color:hc,fontSize:'clamp(6px,1.1vw,13px)' }}>{it.t}</div>
-                  <div style={{ fontSize:'clamp(4px,0.8vw,9px)',color:'#6b7280' }}>{it.st}</div>
+                  <div style={{ fontWeight: 700, color: hc, fontSize: 'clamp(6px,1.1vw,13px)' }}>{it.t}</div>
+                  <div style={{ fontSize: 'clamp(4px,0.8vw,9px)', color: '#6b7280' }}>{it.st}</div>
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+      <SlidePreviewFooter slideNum="05" />
     </SlideShell>
   );
 }
 
 function Slide6Preview() {
   const { data: { slide6: s } } = useFormData();
-  const hc = '#3d1a6e', ac = '#f97316';
-  const imgSrc = s.planImage
-    ? URL.createObjectURL(s.planImage)
-    : 'https://images.unsplash.com/photo-1598928506311-c55dd1b4eb64?q=80&w=800&auto=format&fit=crop';
+  const hc = '#7D3C70', ac = '#FF8435';
+  const imgSrc = (s.planImage ? getSafeImageUrl(s.planImage) : null) || 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=800&auto=format&fit=crop';
 
   const features = [
-    { icon: Ruler, label: s.floorHeightLabel || 'Floor Height', val: s.floorHeightValue || '12\'5"' },
-    { icon: Expand, label: s.frontageLabel || 'Frontage', val: s.frontageValue || '20\' to 35\'' },
-    { icon: Car, label: s.parkingLabel || 'Parking', val: s.parkingValue || 'Ample Two Wheeler\n& Four Wheeler' },
-    { icon: Map, label: s.roadAccessLabel || 'Road Access', val: s.roadAccessValue || '30 MT Wide Road' },
+    { icon: Ruler, label: s.floorHeightLabel || '', val: s.floorHeightValue || '12\'5"' },
+    { icon: Expand, label: s.frontageLabel || '', val: s.frontageValue || '20\' to 35\'' },
+    { icon: Car, label: s.parkingLabel || '', val: s.parkingValue || '' },
+    { icon: Map, label: s.roadAccessLabel || '', val: s.roadAccessValue || '' },
   ];
 
   return (
     <SlideShell>
       <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
-      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '56%' }}>
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '55%' }}>
         <img src={imgSrc} alt="floor plan" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,transparent 40%,white 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,rgba(255,255,255,0) 40%,white 100%)' }} />
       </div>
-      <div style={{ position: 'absolute', inset: 0, padding: '4%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ position: 'absolute', inset: 0, padding: '5% 5% 12% 5%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '5%' }}>
           <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>
-            {s.slideNumber || '06'}
+            {s.slideNumber || ''}
           </div>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1.1 }}>{s.title || 'GROUND FLOOR PLAN'}</div>
-            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || 'RETAIL SPACES'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1.1 }}>{s.title || ''}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || ''}</div>
           </div>
         </div>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(5px,1vw,12px)' }}>
           {features.map((f, i) => {
             const Icon = f.icon;
@@ -388,22 +570,23 @@ function Slide6Preview() {
           })}
         </div>
       </div>
+      <SlidePreviewFooter slideNum="07" />
     </SlideShell>
   );
 }
 
 function Slide7Preview() {
   const { data: { slide7: s } } = useFormData();
-  const hc = '#3d1a6e', ac = '#f97316';
+  const hc = '#7D3C70', ac = '#FF8435';
   const imgSrc = s.planImage
-    ? URL.createObjectURL(s.planImage)
-    : 'https://images.unsplash.com/photo-1598928506311-c55dd1b4eb64?q=80&w=800&auto=format&fit=crop';
+    ? getSafeImageUrl(s.planImage)
+    : 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=800&auto=format&fit=crop';
 
   const features = [
-    { icon: Ruler, label: s.floorHeightLabel || 'Floor Height', val: s.floorHeightValue || '9\'5"' },
-    { icon: Briefcase, label: s.bestForLabel || 'Best for', val: s.bestForValue || 'F&B / Lifestyle / Offices' },
-    { icon: Sun, label: s.terraceLabel || 'Open Terrace', val: s.terraceValue || 'Provision' },
-    { icon: Building, label: s.liftStaircaseLabel || 'Lift & Staircase', val: s.liftStaircaseValue || 'Access' },
+    { icon: Ruler, label: s.floorHeightLabel || '', val: s.floorHeightValue || '9\'5"' },
+    { icon: Briefcase, label: s.bestForLabel || '', val: s.bestForValue || '' },
+    { icon: Sun, label: s.terraceLabel || '', val: s.terraceValue || '' },
+    { icon: Building, label: s.liftStaircaseLabel || '', val: s.liftStaircaseValue || '' },
   ];
 
   return (
@@ -411,19 +594,19 @@ function Slide7Preview() {
       <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
       <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '56%' }}>
         <img src={imgSrc} alt="floor plan" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,transparent 40%,white 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(270deg,rgba(255,255,255,0) 40%,white 100%)' }} />
       </div>
-      <div style={{ position: 'absolute', inset: 0, padding: '4%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ position: 'absolute', inset: 0, padding: '4% 4% 11% 4%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '5%' }}>
           <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>
-            {s.slideNumber || '07'}
+            {s.slideNumber || ''}
           </div>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1.1 }}>{s.title || 'SECOND FLOOR PLAN'}</div>
-            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || 'RETAIL SPACES'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1.1 }}>{s.title || ''}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || ''}</div>
           </div>
         </div>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(5px,1vw,12px)' }}>
           {features.map((f, i) => {
             const Icon = f.icon;
@@ -441,16 +624,15 @@ function Slide7Preview() {
           })}
         </div>
       </div>
+      <SlidePreviewFooter slideNum="09" />
     </SlideShell>
   );
 }
 
 function Slide8Preview() {
   const { data: { slide8: s } } = useFormData();
-  const hc = '#3d1a6e', ac = '#f97316';
-  const imgSrc = s.mapImage
-    ? URL.createObjectURL(s.mapImage)
-    : 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop';
+  const hc = '#7D3C70', ac = '#FF8435';
+  const imgSrc = (s.mapImage ? getSafeImageUrl(s.mapImage) : null) || 'https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?q=80&w=800&auto=format&fit=crop';
 
   const brandLines = (s.brandList || '').split('\n').filter(Boolean);
   const legendColors = ['#ec4899', '#eab308', '#ef4444', '#22c55e', '#3b82f6', '#a855f7'];
@@ -465,59 +647,69 @@ function Slide8Preview() {
       <div style={{ position: 'absolute', inset: 0, padding: '4%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '5%' }}>
           <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>
-            {s.slideNumber || '08'}
+            {s.slideNumber || ''}
           </div>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1.1 }}>{s.title || 'BRAND LOCATION MAP'}</div>
-            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || 'BE IN THE COMPANY OF THE BEST'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1.1 }}>{s.title || ''}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || ''}</div>
           </div>
         </div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px,0.8vw,10px)' }}>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(6px, 1.2vw, 14px)', marginTop: '2%' }}>
           {brandLines.map((line, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div key={i} style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 8, 
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 30,
+              padding: '4px 12px',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.03)'
+            }}>
               <div style={{
-                width: 'clamp(8px,1.5vw,14px)',
-                height: 'clamp(8px,1.5vw,14px)',
+                width: 'clamp(6px, 1vw, 10px)',
+                height: 'clamp(6px, 1vw, 10px)',
                 borderRadius: '50%',
                 background: legendColors[i % legendColors.length],
                 flexShrink: 0,
               }} />
-              <span style={{ fontSize: 'clamp(6px,1vw,12px)', fontWeight: 700, color: '#374151' }}>
+              <span style={{ fontSize: 'clamp(6px, 0.9vw, 11px)', fontWeight: 700, color: '#324D7B', letterSpacing: '0.02em' }}>
                 {line.toUpperCase()}
               </span>
             </div>
           ))}
         </div>
       </div>
+      <SlidePreviewFooter slideNum="11" />
     </SlideShell>
   );
 }
 
 function Slide9Preview() {
   const { data: { slide9: s } } = useFormData();
-  const hc = '#3d1a6e', ac = '#f97316';
-  
+  const hc = '#7D3C70', ac = '#FF8435';
+
   const cards = [
     {
-      img: s.img1 ? URL.createObjectURL(s.img1) : 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=500&auto=format&fit=crop',
-      label: s.label1 || 'FINE DINING'
+      img: s.img1 ? getSafeImageUrl(s.img1) : '',
+      label: s.label1 || ''
     },
     {
-      img: s.img2 ? URL.createObjectURL(s.img2) : 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=500&auto=format&fit=crop',
-      label: s.label2 || 'SHOPPING'
+      img: s.img2 ? getSafeImageUrl(s.img2) : '',
+      label: s.label2 || ''
     },
     {
-      img: s.img3 ? URL.createObjectURL(s.img3) : 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&auto=format&fit=crop',
-      label: s.label3 || 'FITNESS'
+      img: s.img3 ? getSafeImageUrl(s.img3) : '',
+      label: s.label3 || ''
     },
     {
-      img: s.img4 ? URL.createObjectURL(s.img4) : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop',
-      label: s.label4 || 'ENTERTAINMENT'
+      img: s.img4 ? getSafeImageUrl(s.img4) : '',
+      label: s.label4 || ''
     },
     {
-      img: s.img5 ? URL.createObjectURL(s.img5) : 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=500&auto=format&fit=crop',
-      label: s.label5 || 'RESIDENTIAL CATCHMENT'
+      img: s.img5 ? getSafeImageUrl(s.img5) : '',
+      label: s.label5 || ''
     }
   ];
 
@@ -527,16 +719,16 @@ function Slide9Preview() {
       {/* Header */}
       <div style={{ position: 'absolute', left: '4%', top: '4%', right: '4%', display: 'flex', alignItems: 'flex-start', gap: 8, zIndex: 10 }}>
         <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>
-          {s.slideNumber || '09'}
+          {s.slideNumber || ''}
         </div>
         <div>
-          <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1.1 }}>{s.title || 'LIFESTYLE AROUND YOU'}</div>
-          <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || 'EVERYTHING NEARBY'}</div>
+          <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1.1 }}>{s.title || ''}</div>
+          <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || ''}</div>
         </div>
       </div>
 
       {/* Grid */}
-      <div style={{ position: 'absolute', left: '4%', right: '4%', bottom: '8%', top: '24%', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 'clamp(4px, 1.2vw, 12px)' }}>
+      <div style={{ position: 'absolute', left: '4%', right: '4%', bottom: '12%', top: '24%', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 'clamp(4px, 1.2vw, 12px)' }}>
         {cards.map((c, i) => (
           <div key={i} style={{ display: 'flex', flexDirection: 'column', border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden', background: '#fff', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
             <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
@@ -550,32 +742,33 @@ function Slide9Preview() {
           </div>
         ))}
       </div>
+      <SlidePreviewFooter slideNum="12" />
     </SlideShell>
   );
 }
 
 function Slide10Preview() {
   const { data: { slide10: s } } = useFormData();
-  const hc = '#3d1a6e', ac = '#f97316';
+  const hc = '#7D3C70', ac = '#FF8435';
 
   const col1 = [
-    { icon: Building2, label: s.spec1Label || 'Project Type', val: s.spec1Value || 'Commercial' },
-    { icon: MapPin, label: s.spec2Label || 'Location', val: s.spec2Value || 'Sindhu Bhavan Road,\nBodakdev, Ahmedabad' },
-    { icon: Gem, label: s.spec3Label || 'Jewellery Brands', val: s.spec3Value || 'Tanishq, Malabar,\nPC Jeweller & More' },
-    { icon: Shirt, label: s.spec4Label || 'Apparel Brands', val: s.spec4Value || 'Zara, H&M, Trends,\nLifestyle & More' },
-    { icon: Utensils, label: s.spec5Label || 'F&B Outlets', val: s.spec5Value || "McDonald's, Starbucks,\nThe White Crow & More" },
-  ];
+    { icon: Building2, label: s.spec1Label || '', val: s.spec1Value || '' },
+    { icon: MapPin, label: s.spec2Label || '', val: s.spec2Value || '' },
+    { icon: Gem, label: s.spec3Label || '', val: s.spec3Value || '' },
+    { icon: Shirt, label: s.spec4Label || '', val: s.spec4Value || '' },
+    { icon: Utensils, label: s.spec5Label || '', val: s.spec5Value || "" },
+  ].filter(item => item.label || item.val);
 
   const col2 = [
-    { icon: ArrowUpDown, label: s.spec6Label || 'Ground Floor Height', val: s.spec6Value || "12'5\"" },
-    { icon: ArrowUpDown, label: s.spec7Label || 'First Floor Height', val: s.spec7Value || "10'5\"" },
-    { icon: ArrowUpDown, label: s.spec8Label || 'Second Floor Height', val: s.spec8Value || "9'5\"" },
-    { icon: Calendar, label: s.spec9Label || 'Possession', val: s.spec9Value || 'March 2027' },
-    { icon: ScanLine, label: s.spec10Label || 'Google Maps', val: s.spec10Value || 'Scan QR Code' },
-  ];
+    { icon: ArrowUpDown, label: s.spec6Label || '', val: s.spec6Value || "" },
+    { icon: ArrowUpDown, label: s.spec7Label || '', val: s.spec7Value || "" },
+    { icon: ArrowUpDown, label: s.spec8Label || '', val: s.spec8Value || "" },
+    { icon: Calendar, label: s.spec9Label || '', val: s.spec9Value || '' },
+    { icon: ScanLine, label: s.spec10Label || '', val: s.spec10Value || '' },
+  ].filter(item => item.label || item.val);
 
   const qrSrc = s.qrImage
-    ? URL.createObjectURL(s.qrImage)
+    ? getSafeImageUrl(s.qrImage)
     : `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(s.qrUrl || 'https://maps.google.com')}`;
 
   return (
@@ -584,7 +777,7 @@ function Slide10Preview() {
       {/* Header */}
       <div style={{ position: 'absolute', left: '4%', top: '4%', right: '4%', display: 'flex', alignItems: 'center', gap: 8, zIndex: 10 }}>
         <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>
-          {s.slideNumber || '10'}
+          {s.slideNumber || ''}
         </div>
         <div>
           <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1.1 }}>PROPERTY</div>
@@ -593,9 +786,9 @@ function Slide10Preview() {
       </div>
 
       {/* Columns Grid */}
-      <div style={{ position: 'absolute', left: '4%', right: '4%', bottom: '4%', top: '24%', display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 0.8fr', gap: 'clamp(8px, 2vw, 20px)' }}>
+      <div style={{ position: 'absolute', left: '4%', right: '4%', bottom: '12%', top: '24%', display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 0.8fr', gap: 'clamp(8px, 2vw, 20px)' }}>
         {/* Col 1 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1vw, 10px)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 1.8vw, 20px)' }}>
           {col1.map((item, i) => {
             const Icon = item.icon;
             return (
@@ -631,89 +824,135 @@ function Slide10Preview() {
         </div>
 
         {/* Col 3: QR Code */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px dashed #d1d5db', borderRadius: 8, padding: '10%', background: '#f9fafb' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px dashed #d1d5db', borderRadius: 8, padding: '10%', background: '#f9fafb', alignSelf: 'center' }}>
           <img src={qrSrc} alt="QR Code" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'contain' }} />
         </div>
       </div>
+      <SlidePreviewFooter slideNum="13" />
     </SlideShell>
   );
 }
 
 function Slide11Preview() {
   const { data: { slide11: s } } = useFormData();
-  const hc = '#3d1a6e', ac = '#f97316';
+  const tc = '#7D3C70'; // theme purple
+  const buildingSrc = (s.buildingImage ? getSafeImageUrl(s.buildingImage) : null) || 'https://images.unsplash.com/photo-1554469384-e58fac16e23a?q=80&w=800&auto=format&fit=crop';
 
-  const row1 = [
-    { icon: MapPin, label: s.card1Label || 'Prime Location\nHigh Visibility' },
-    { icon: ShoppingBag, label: s.card2Label || 'Surrounded by\nPremium Brands' },
-    { icon: Users, label: s.card3Label || 'High Footfall\nCatchment' },
-    { icon: Building, label: s.card4Label || 'Modern Architecture\n& Design' },
-  ];
+  // Get selected categories (up to 7) from form selection
+  const selectedCategories = (s.selectedCategories || []).slice(0, 7).map(id =>
+    PREDEFINED_CATEGORIES.find(c => c.id === id) || PREDEFINED_CATEGORIES[0]
+  );
 
-  const row2 = [
-    { icon: Route, label: s.card5Label || 'Excellent\nConnectivity & Access' },
-    { icon: TrendingUp, label: s.card6Label || 'Strong Investment\n& Returns' },
-    { icon: BarChart3, label: s.card7Label || 'Strong Investment\nPotential' },
-  ];
+  // Ensure we have 7 items (fill with defaults if needed)
+  const highlights = [
+    ...selectedCategories.slice(0, 7),
+    ...Array(Math.max(0, 7 - selectedCategories.length)).fill(PREDEFINED_CATEGORIES[0])
+  ].slice(0, 7);
+
+  const iconSize = 'clamp(14px,2.2vw,28px)';
+  const circleSize = 'clamp(38px,6vw,72px)';
 
   return (
     <SlideShell>
-      <div style={{ position: 'absolute', inset: 0, background: '#fff', padding: '4%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }} />
-      {/* Header */}
-      <div style={{ position: 'absolute', left: '4%', top: '4%', right: '4%', display: 'flex', alignItems: 'center', gap: 8, zIndex: 10 }}>
-        <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>
-          {s.slideNumber || '11'}
-        </div>
+      {/* Dark navy base */}
+      <div style={{ position: 'absolute', inset: 0, background: '#0d0420' }} />
+
+      {/* Building photo — right 55% */}
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '55%' }}>
+        <img
+          src={buildingSrc}
+          alt="Building"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+        {/* Fade from dark bg → transparent so it blends */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(90deg, #0d0420 0%, rgba(13,4,32,0.55) 35%, rgba(13,4,32,0) 80%)',
+        }} />
+      </div>
+
+      {/* All content sits above the image */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        padding: '5% 5% 12% 5%',
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      }}>
+
+        {/* ── Title block ── */}
         <div>
-          <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.2vw,24px)', color: hc, lineHeight: 1.1 }}>WHY INVEST IN</div>
-          <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.2vw,24px)', color: ac, lineHeight: 1.1 }}>MADHAV HIGHSTREET?</div>
-        </div>
-      </div>
+          {/* Slide number badge */}
+          <div style={{
+            display: 'inline-block',
+            background: tc, color: '#fff', fontWeight: 900,
+            fontSize: 'clamp(9px,1.4vw,16px)',
+            padding: '2px 10px', borderRadius: 4,
+            marginBottom: 'clamp(6px,1vw,14px)',
+          }}>
+            {s.slideNumber || ''}
+          </div>
 
-      {/* Cards Area */}
-      <div style={{ position: 'absolute', left: '4%', right: '4%', bottom: '8%', top: '24%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 'clamp(8px, 2vw, 20px)' }}>
-        {/* Row 1 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'clamp(8px, 1.5vw, 16px)' }}>
-          {row1.map((item, i) => {
-            const Icon = item.icon;
+          <div style={{ fontWeight: 900, fontSize: 'clamp(16px,3.2vw,40px)', color: '#fff', lineHeight: 1.05, letterSpacing: '-0.01em' }}>
+            WHY INVEST IN
+          </div>
+          <div style={{ fontWeight: 900, fontSize: 'clamp(16px,3.2vw,40px)', color: '#fff', lineHeight: 1.05, letterSpacing: '-0.01em', marginBottom: 'clamp(6px,1vw,14px)' }}>
+            {s.title || ''}
+          </div>
+
+          {/* Purple accent underline */}
+          <div style={{ width: 'clamp(28px,3.5vw,44px)', height: 3, background: tc, borderRadius: 2 }} />
+        </div>
+
+        {/* ── 7 Features in one row ── */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(7, 1fr)',
+          gap: 'clamp(4px,0.8vw,12px)', 
+          alignItems: 'start'
+        }}>
+          {highlights.map((cat, i) => {
+            const Icon = cat.icon;
             return (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'clamp(6px, 1vw, 12px)', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 'clamp(8px, 1.5vw, 14px)', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
-                <div style={{ width: 'clamp(20px, 3.5vw, 36px)', height: 'clamp(20px, 3.5vw, 36px)', borderRadius: '50%', background: '#fff7ed', border: '1px solid #ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size="clamp(10px, 1.8vw, 18px)" style={{ color: ac }} />
+              <div key={i} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 'clamp(5px,0.8vw,12px)'
+              }}>
+                {/* Purple-bordered circle */}
+                <div style={{
+                  width: circleSize, height: circleSize,
+                  borderRadius: '50%',
+                  border: `clamp(1.5px,0.25vw,3px) solid ${tc}`,
+                  background: 'rgba(75,36,122,0.18)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                  aspectRatio: '1/1',
+                }}>
+                  <Icon style={{ width: iconSize, height: iconSize, color: '#fff' }} strokeWidth={1.5} />
                 </div>
-                <div style={{ fontSize: 'clamp(6px, 1vw, 11px)', fontWeight: 700, color: hc, whiteSpace: 'pre-line', lineHeight: 1.2 }}>
-                  {item.label}
+                {/* Label below */}
+                <div style={{
+                  fontSize: 'clamp(5px,0.75vw,9px)', color: '#ffffffcc',
+                  textAlign: 'center', lineHeight: 1.3,
+                  whiteSpace: 'pre-line', fontWeight: 500,
+                }}>
+                  {cat.name.replace(/\\n/g, '\n')}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Row 2 */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(8px, 1.5vw, 16px)' }}>
-          {row2.map((item, i) => {
-            const Icon = item.icon;
-            return (
-              <div key={i} style={{ display: 'flex', width: '23%', alignItems: 'center', gap: 'clamp(6px, 1vw, 12px)', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 'clamp(8px, 1.5vw, 14px)', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
-                <div style={{ width: 'clamp(20px, 3.5vw, 36px)', height: 'clamp(20px, 3.5vw, 36px)', borderRadius: '50%', background: '#fff7ed', border: '1px solid #ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size="clamp(10px, 1.8vw, 18px)" style={{ color: ac }} />
-                </div>
-                <div style={{ fontSize: 'clamp(6px, 1vw, 11px)', fontWeight: 700, color: hc, whiteSpace: 'pre-line', lineHeight: 1.2 }}>
-                  {item.label}
-                </div>
-              </div>
-            );
-          })}
-        </div>
       </div>
+      <SlidePreviewFooter slideNum={s.slideNumber || "14"} isDark={true} />
     </SlideShell>
   );
 }
 
 function SlideSiteVisibilityPreview() {
   const { data: { slideSiteVisibility: s } } = useFormData();
-  const hc = '#3d1a6e', ac = '#f97316';
-  
+  const hc = '#7D3C70', ac = '#FF8435';
+
   const viewImages = [
     { label: 'LEFT VIEW', image: s.leftViewImage },
     { label: 'FRONT VIEW', image: s.frontViewImage },
@@ -731,7 +970,7 @@ function SlideSiteVisibilityPreview() {
       <div style={{ position: 'absolute', inset: 0, background: '#fff' }} />
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '4%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '3%' }}>
-          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>{s.slideNumber || '06'}</div>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>{s.slideNumber || ''}</div>
           <div>
             <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.4vw,28px)', color: hc, lineHeight: 1 }}>{s.title || 'SITE VISIBILITY'}</div>
             <div style={{ fontWeight: 900, fontSize: 'clamp(10px,2vw,22px)', color: ac, lineHeight: 1 }}>{s.subtitle || 'EXCELLENT FRONTAGE & ACCESS'}</div>
@@ -739,7 +978,7 @@ function SlideSiteVisibilityPreview() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'clamp(8px,1.5vw,20px)', marginTop: '2%' }}>
           {viewImages.map((view, i) => {
-            const imgSrc = view.image ? URL.createObjectURL(view.image) : defaultImages[i];
+            const imgSrc = view.image ? getSafeImageUrl(view.image) : defaultImages[i];
             return (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(4px,0.8vw,10px)' }}>
                 <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
@@ -752,20 +991,21 @@ function SlideSiteVisibilityPreview() {
           })}
         </div>
       </div>
+      <SlidePreviewFooter slideNum={s.slideNumber || "06"} />
     </SlideShell>
   );
 }
 
 function SlideFirstFloorPlanPreview() {
   const { data: { slideFirstFloorPlan: s } } = useFormData();
-  const hc = '#3d1a6e', ac = '#f97316';
-  const floorPlanSrc = s.floorPlanImage ? URL.createObjectURL(s.floorPlanImage) : null;
+  const hc = '#7D3C70', ac = '#FF8435';
+  const floorPlanSrc = s.floorPlanImage ? getSafeImageUrl(s.floorPlanImage) : null;
 
   const features = [
-    { icon: '📏', title: s.feature1Title || 'Floor Height', desc: s.feature1Desc || '10\'5"' },
-    { icon: '📐', title: s.feature2Title || 'Frontage', desc: s.feature2Desc || '18\' to 28\'' },
-    { icon: '🅿️', title: s.feature3Title || 'Parking', desc: s.feature3Desc || 'Ample' },
-    { icon: '🛗', title: s.feature4Title || 'Escalator & Lift', desc: s.feature4Desc || 'For Easy Access' },
+    { icon: '📏', title: s.feature1Title || '', desc: s.feature1Desc || '10\'5"' },
+    { icon: '📐', title: s.feature2Title || '', desc: s.feature2Desc || '18\' to 28\'' },
+    { icon: '🅿️', title: s.feature3Title || '', desc: s.feature3Desc || '' },
+    { icon: '🛗', title: s.feature4Title || '', desc: s.feature4Desc || '' },
   ];
 
   return (
@@ -787,46 +1027,52 @@ function SlideFirstFloorPlanPreview() {
       </div>
 
       {/* Left content */}
-      <div style={{ position: 'absolute', inset: 0, padding: '5%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ position: 'absolute', inset: 0, padding: '5% 5% 12% 5%', paddingRight: '52%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '5%' }}>
-          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>{s.slideNumber || '08'}</div>
+          <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(7px,1.2vw,14px)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>{s.slideNumber || ''}</div>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: hc, lineHeight: 1.1 }}>{s.title || 'FIRST FLOOR PLAN'}</div>
-            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || 'RETAIL SPACES'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: hc, lineHeight: 1.1 }}>{s.title || ''}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(11px,2.6vw,30px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || ''}</div>
           </div>
         </div>
 
         {/* Features list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(7px,1.3vw,16px)' }}>
-          {features.map((f, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-              <div style={{ fontSize: 'clamp(12px,1.8vw,22px)', lineHeight: 1 }}>{f.icon}</div>
-              <div>
-                <div style={{ fontSize: 'clamp(5px,0.85vw,10px)', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.title}</div>
-                <div style={{ fontWeight: 700, color: hc, fontSize: 'clamp(6px,1.1vw,13px)', whiteSpace: 'pre-line' }}>{f.desc}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(5px,1vw,12px)' }}>
+          {features.map((f, i) => {
+            const Icon = f.icon === '📏' ? Ruler : f.icon === '📐' ? Expand : f.icon === '🅿️' ? Car : ArrowUpDown;
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 'clamp(12px,2vw,24px)', height: 'clamp(12px,2vw,24px)', border: `1.5px solid ${ac}`, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size="clamp(6px,1vw,12px)" style={{ color: ac }} strokeWidth={2} />
+                </div>
+                <div>
+                  <span style={{ display: 'block', fontSize: 'clamp(5px,0.85vw,10px)', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.title}</span>
+                  <span style={{ display: 'block', fontWeight: 700, color: hc, fontSize: 'clamp(6px,1.1vw,13px)', whiteSpace: 'pre-line' }}>{f.desc}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+      <SlidePreviewFooter slideNum={s.slideNumber || "08"} />
     </SlideShell>
   );
 }
 
 function SlideNearbyCommercialPreview() {
   const { data: { slideNearbyCommercial: s } } = useFormData();
-  const hc = '#3d1a6e', ac = '#f97316';
-  const ecosystemSrc = s.ecosystemImage ? URL.createObjectURL(s.ecosystemImage) : null;
+  const hc = '#7D3C70', ac = '#FF8435';
+  const ecosystemSrc = s.ecosystemImage ? getSafeImageUrl(s.ecosystemImage) : null;
 
   const buildings = [
-    { name: s.building1Name || 'THE WHITE CROW', distance: s.building1Distance || '150 M', image: s.building1Image },
-    { name: s.building2Name || 'STELLAR', distance: s.building2Distance || '200 M', image: s.building2Image },
-    { name: s.building3Name || 'TWIN LILAC', distance: s.building3Distance || '500 M', image: s.building3Image },
-    { name: s.building4Name || 'NOVA', distance: s.building4Distance || '450 M', image: s.building4Image },
-    { name: s.building5Name || 'ARISTA', distance: s.building5Distance || '500 M', image: s.building5Image },
-    { name: s.building6Name || 'DOM ETERNUS', distance: s.building6Distance || '700 M', image: s.building6Image },
-    { name: s.building7Name || 'PALLADIUM', distance: s.building7Distance || '900 M', image: s.building7Image },
-    { name: s.building8Name || 'PENTAGON', distance: s.building8Distance || '1.2 KM', image: s.building8Image },
+    { name: s.building1Name || '', distance: s.building1Distance || '', image: s.building1Image },
+    { name: s.building2Name || '', distance: s.building2Distance || '', image: s.building2Image },
+    { name: s.building3Name || '', distance: s.building3Distance || '', image: s.building3Image },
+    { name: s.building4Name || '', distance: s.building4Distance || '', image: s.building4Image },
+    { name: s.building5Name || '', distance: s.building5Distance || '', image: s.building5Image },
+    { name: s.building6Name || '', distance: s.building6Distance || '', image: s.building6Image },
+    { name: s.building7Name || '', distance: s.building7Distance || '', image: s.building7Image },
+    { name: s.building8Name || '', distance: s.building8Distance || '', image: s.building8Image },
   ];
 
   return (
@@ -835,38 +1081,49 @@ function SlideNearbyCommercialPreview() {
       {ecosystemSrc && (
         <img src={ecosystemSrc} alt="Ecosystem" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }} />
       )}
-      
+
       {/* Content */}
-      <div style={{ position: 'absolute', inset: 0, padding: '5%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ position: 'absolute', inset: 0, padding: '5% 5% 12% 5%', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '4%' }}>
           <div style={{ background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(10px,1.5vw,18px)', padding: '4px 10px', borderRadius: 4, flexShrink: 0 }}>{s.slideNumber || '12'}</div>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 'clamp(14px,3vw,36px)', color: hc, lineHeight: 1.1 }}>{s.title || 'NEARBY COMMERCIAL'}</div>
-            <div style={{ fontWeight: 900, fontSize: 'clamp(14px,3vw,36px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || 'ECOSYSTEM'}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(14px,3vw,36px)', color: hc, lineHeight: 1.1 }}>{s.title || ''}</div>
+            <div style={{ fontWeight: 900, fontSize: 'clamp(14px,3vw,36px)', color: ac, lineHeight: 1.1 }}>{s.subtitle || ''}</div>
             <div style={{ fontSize: 'clamp(7px,1.1vw,13px)', color: '#6b7280', marginTop: 4, fontStyle: 'italic' }}>Surrounded by Successful Businesses</div>
           </div>
         </div>
 
-        {/* Buildings grid - 2 rows x 4 columns */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'clamp(8px,1.5vw,20px)', marginTop: 'auto', marginBottom: 'auto' }}>
-          {buildings.map((building, i) => {
-            const imageSrc = building.image ? URL.createObjectURL(building.image) : null;
+        {/* Buildings grid - dynamically centered */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: `repeat(${buildings.filter(b => b.name).length > 4 ? 4 : Math.max(1, buildings.filter(b => b.name).length)}, 1fr)`, 
+          gap: 'clamp(8px,1.5vw,16px)', 
+          marginTop: 'auto', 
+          marginBottom: 'auto' 
+        }}>
+          {buildings.filter(b => b.name || b.distance).map((building, i) => {
+            const imageSrc = (building.image ? getSafeImageUrl(building.image) : null) || [
+                  'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=300&auto=format&fit=crop',
+                  'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300&auto=format&fit=crop',
+                  'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=300&auto=format&fit=crop',
+                  'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=300&auto=format&fit=crop',
+                  'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=300&auto=format&fit=crop',
+                  'https://images.unsplash.com/photo-1554469384-e58fac16e23a?q=80&w=300&auto=format&fit=crop',
+                  'https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=300&auto=format&fit=crop',
+                  'https://images.unsplash.com/photo-1570129476815-ba368ac77011?q=80&w=300&auto=format&fit=crop'
+                ][i % 8];
             return (
               <div key={i} style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                {/* Building image or placeholder */}
-                <div style={{ width: '100%', aspectRatio: '16/10', background: `linear-gradient(135deg, ${hc}dd 0%, ${hc}99 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                  {imageSrc ? (
-                    <img src={imageSrc} alt={building.name} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
-                  ) : (
-                    <div style={{ fontSize: 'clamp(20px,3vw,40px)', position: 'relative', zIndex: 1 }}>🏢</div>
-                  )}
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: hc, color: '#fff', padding: 'clamp(4px,0.8vw,10px)', textAlign: 'center', fontSize: 'clamp(6px,1vw,12px)', fontWeight: 700, letterSpacing: '0.05em', zIndex: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {/* Building image */}
+                <div style={{ width: '100%', aspectRatio: '2/1', position: 'relative', overflow: 'hidden' }}>
+                  <img src={imageSrc} alt={building.name} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: hc, color: '#fff', padding: 'clamp(4px,0.8vw,10px)', textAlign: 'center', fontSize: 'clamp(6px,1vw,11px)', fontWeight: 700, letterSpacing: '0.05em', zIndex: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {building.name}
                   </div>
                 </div>
                 {/* Distance */}
-                <div style={{ background: '#fff', padding: 'clamp(6px,1vw,12px)', textAlign: 'center', fontSize: 'clamp(8px,1.2vw,14px)', fontWeight: 700, color: hc, borderTop: `2px solid ${ac}` }}>
+                <div style={{ background: '#fff', padding: '4px 6px', textAlign: 'center', fontSize: 'clamp(7px,1.1vw,12px)', fontWeight: 700, color: hc, borderTop: `2px solid ${ac}` }}>
                   {building.distance}
                 </div>
               </div>
@@ -874,20 +1131,21 @@ function SlideNearbyCommercialPreview() {
           })}
         </div>
       </div>
+      <SlidePreviewFooter slideNum={s.slideNumber || "10"} />
     </SlideShell>
   );
 }
 
 function SlideContactPreview() {
   const { data: { slideContact: s } } = useFormData();
-  const hc = '#3d1a6e', ac = '#f97316';
-  const logoSrc = s.companyLogo ? URL.createObjectURL(s.companyLogo) : null;
+  const hc = '#7D3C70', ac = '#FF8435';
+  const logoSrc = s.companyLogo ? getSafeImageUrl(s.companyLogo) : null;
 
   return (
     <SlideShell>
       {/* Dark purple background */}
       <div style={{ position: 'absolute', inset: 0, background: '#1a0a2e' }} />
-      
+
       {/* Large background logo/icon watermark */}
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.05 }}>
         <Building2 size="300" strokeWidth={1} style={{ color: '#fff' }} />
@@ -895,82 +1153,95 @@ function SlideContactPreview() {
 
       {/* Content */}
       <div style={{ position: 'absolute', inset: 0, color: '#fff' }}>
-        
+
         {/* Top Left: Slide number badge */}
-        <div style={{ 
+        <div style={{
           position: 'absolute', top: '12%', left: '8%',
           background: hc, color: '#fff', fontWeight: 900, fontSize: 'clamp(9px,1.2vw,14px)',
           padding: '4px 10px', borderRadius: 4
         }}>
-          {s.slideNumber || '15'}
+          {s.slideNumber || ''}
         </div>
-        
+
         {/* Main heading */}
-        <h1 style={{ 
+        <h1 style={{
           position: 'absolute', top: '25%', left: '8%', width: '48%',
           fontSize: 'clamp(20px,4.2vw,48px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1,
           whiteSpace: 'pre-line'
         }}>
-          {s.heading || "LET'S BUILD\nSOMETHING ICONIC\nTOGETHER"}
+          {s.heading || ""}
         </h1>
 
         {/* Bottom Left: Company logo and name */}
         <div style={{ position: 'absolute', bottom: '12%', left: '8%', display: 'flex', alignItems: 'center', gap: 12 }}>
-          {logoSrc ? (
-            <img src={logoSrc} alt="Logo" style={{ width: 'clamp(36px,4.5vw,56px)', height: 'clamp(36px,4.5vw,56px)', borderRadius: 8, objectFit: 'cover' }} />
-          ) : (
-            <div style={{ width: 'clamp(36px,4.5vw,56px)', height: 'clamp(36px,4.5vw,56px)', borderRadius: 8, background: 'linear-gradient(135deg,#f97316 0%,#ea580c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 'clamp(16px,2vw,26px)', color: '#fff' }}>
-              A
-            </div>
+          {logoSrc && (
+            <img src={logoSrc} alt="Logo" style={{ width: 'clamp(36px,4.5vw,56px)', height: 'clamp(36px,4.5vw,56px)', borderRadius: 8, objectFit: 'contain', background: '#fff', padding: 4 }} />
           )}
           <div>
-            <div style={{ fontWeight: 800, fontSize: 'clamp(14px,1.8vw,22px)', lineHeight: 1.2 }}>{s.companyName || 'AESTHETIC ARC'}</div>
-            <div style={{ fontSize: 'clamp(7px,0.9vw,11px)', opacity: 0.7, lineHeight: 1.2, marginTop: 2 }}>{s.companyTagline || 'PROPERTY LEASING COMPANY'}</div>
+            <div style={{ fontWeight: 800, fontSize: 'clamp(14px,1.8vw,22px)', lineHeight: 1.2 }}>{s.companyName || ''}</div>
+            <div style={{ fontSize: 'clamp(7px,0.9vw,11px)', opacity: 0.7, lineHeight: 1.2, marginTop: 2 }}>{s.companyTagline || ''}</div>
           </div>
         </div>
 
         {/* Right: Contact details */}
-        <div style={{ position: 'absolute', top: '20%', right: '8%', width: '38%', display: 'flex', flexDirection: 'column', gap: 'clamp(12px,2vw,24px)' }}>
+        <div style={{ position: 'absolute', top: '25%', right: '8%', width: '38%', display: 'flex', flexDirection: 'column', gap: 'clamp(14px,2.2vw,26px)' }}>
           <div style={{ fontSize: 'clamp(8px,1.1vw,14px)', fontWeight: 700, letterSpacing: '0.15em', opacity: 0.9, marginBottom: 4 }}>GET IN TOUCH</div>
-          
+
           {/* Phone with icon circles */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Phone size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
-              </div>
-              <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.phone1 || '+91 97129 06363'}</span>
+          {(s.phone1 || s.phone2) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {s.phone1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Phone size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+                  </div>
+                  <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.phone1}</span>
+                </div>
+              )}
+              {s.phone2 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: s.phone1 ? 'clamp(22px,2.8vw,32px)' : 0 }}>
+                  {!s.phone1 && (
+                    <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                      <Phone size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+                    </div>
+                  )}
+                  <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.phone2}</span>
+                </div>
+              )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'clamp(22px,2.8vw,32px)' }}>
-              <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.phone2 || '+91 97129 06364'}</span>
-            </div>
-          </div>
+          )}
 
           {/* Email */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Mail size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+          {s.email && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Mail size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+              </div>
+              <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.email}</span>
             </div>
-            <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.email || 'info@aestheticarc.com'}</span>
-          </div>
+          )}
 
           {/* Website */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Globe size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+          {s.website && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Globe size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+              </div>
+              <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.website}</span>
             </div>
-            <span style={{ fontSize: 'clamp(9px,1.2vw,15px)' }}>{s.website || 'www.aestheticarc.com'}</span>
-          </div>
+          )}
 
           {/* Address */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <MapPin size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+          {s.address && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ width: 'clamp(22px,2.8vw,32px)', height: 'clamp(22px,2.8vw,32px)', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <MapPin size="clamp(10px,1.3vw,16px)" style={{ color: ac }} strokeWidth={2} />
+              </div>
+              <span style={{ fontSize: 'clamp(8px,1.05vw,13px)', lineHeight: 1.6, opacity: 0.9, whiteSpace: 'pre-line' }}>
+                {s.address}
+              </span>
             </div>
-            <span style={{ fontSize: 'clamp(8px,1.05vw,13px)', lineHeight: 1.6, opacity: 0.9, whiteSpace: 'pre-line' }}>
-              {s.address || '418, 4th Floor, Shivalik Highstreet,\nNear Rajpath Club, Bodakdev,\nAhmedabad - 380054, Gujarat, India'}
-            </span>
-          </div>
+          )}
         </div>
       </div>
     </SlideShell>
@@ -1002,9 +1273,9 @@ const inputStyle: React.CSSProperties = {
   border: '1.5px solid #d1d5db', borderRadius: 8, color: '#1a2e1a',
   fontSize: 14, outline: 'none', transition: 'border 0.2s',
 };
-const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 700, color: '#14532d', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' };
+const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 700, color: '#7D3C70', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' };
 const textareaStyle: React.CSSProperties = { ...inputStyle, resize: 'vertical', minHeight: 70 };
-const fileStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', background: '#f0fdf4', borderColor: '#bbf7d0' };
+const fileStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', background: '#ffffff', borderColor: '#E2E8F0' };
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div style={{ marginBottom: 16 }}>
@@ -1062,8 +1333,46 @@ function Step1Form() {
       </div>
       <Field label="Background Image (Right side photo)">
         <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('backgroundImage', e.target.files[0])} />
-        {s.backgroundImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.backgroundImage.name}</span>}
+        {s.backgroundImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.backgroundImage)}</span>}
       </Field>
+
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Categories Selection ({(s.selectedCategories || []).length}/8 selected)</div>
+        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 12 }}>Click to select or deselect categories. You can choose a maximum of 8 to display on the first slide.</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {PREDEFINED_CATEGORIES.map(cat => {
+            const selectedCats = s.selectedCategories || [];
+            const isSelected = selectedCats.includes(cat.id);
+            const Icon = cat.icon;
+            return (
+              <div
+                key={cat.id}
+                onClick={() => {
+                  if (isSelected) {
+                    u('selectedCategories', selectedCats.filter((id: string) => id !== cat.id));
+                  } else if (selectedCats.length < 8) {
+                    u('selectedCategories', [...selectedCats, cat.id]);
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, userSelect: 'none',
+                  padding: '6px 12px', borderRadius: 20, cursor: 'pointer',
+                  fontSize: 12, fontWeight: isSelected ? 600 : 500,
+                  background: isSelected ? '#166534' : '#fff',
+                  color: isSelected ? '#fff' : '#4b5563',
+                  border: `1px solid ${isSelected ? '#166534' : '#d1d5db'}`,
+                  transition: 'all 0.2s',
+                  opacity: (!isSelected && selectedCats.length >= 8) ? 0.5 : 1,
+                  pointerEvents: (!isSelected && selectedCats.length >= 8) ? 'none' : 'auto',
+                }}
+              >
+                <Icon size={14} />
+                {cat.name.replace(/\\n/g, ' ')}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1092,7 +1401,7 @@ function Step2Form() {
       </Field>
       <Field label="City Photo (Right side)">
         <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('cityImage', e.target.files[0])} />
-        {s.cityImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.cityImage.name}</span>}
+        {s.cityImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.cityImage)}</span>}
       </Field>
     </div>
   );
@@ -1110,18 +1419,18 @@ function Step3Form() {
       <Field label="Address">
         <textarea style={textareaStyle} value={s.address} onChange={e => u('address', e.target.value)} rows={2} placeholder={"Sindhu Bhavan Road,\nBodakdev, Ahmedabad"} />
       </Field>
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location Point 1</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location Point 1</div>
         <Field label="Title"><input style={inputStyle} value={s.point1Title} onChange={e => u('point1Title', e.target.value)} placeholder="2 Mins from SG Highway" /></Field>
         <Field label="Description"><input style={inputStyle} value={s.point1Desc} onChange={e => u('point1Desc', e.target.value)} placeholder="Excellent Connectivity" /></Field>
       </div>
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location Point 2</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location Point 2</div>
         <Field label="Title"><input style={inputStyle} value={s.point2Title} onChange={e => u('point2Title', e.target.value)} placeholder="Easy Access to SP Ring Road" /></Field>
         <Field label="Description"><input style={inputStyle} value={s.point2Desc} onChange={e => u('point2Desc', e.target.value)} placeholder="Optional description" /></Field>
       </div>
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location Point 3</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location Point 3</div>
         <Field label="Title"><input style={inputStyle} value={s.point3Title} onChange={e => u('point3Title', e.target.value)} placeholder="Surrounded by Premium" /></Field>
         <Field label="Description"><input style={inputStyle} value={s.point3Desc} onChange={e => u('point3Desc', e.target.value)} placeholder="Residential & Commercial Developments" /></Field>
       </div>
@@ -1130,7 +1439,7 @@ function Step3Form() {
       </Field>
       <Field label="Map / Location Image (Right side)">
         <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('mapImage', e.target.files[0])} />
-        {s.mapImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.mapImage.name}</span>}
+        {s.mapImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.mapImage)}</span>}
       </Field>
     </div>
   );
@@ -1148,14 +1457,14 @@ function Step4Form() {
   return (
     <div>
       {features.map((f, i) => (
-        <div key={i} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</div>
+        <div key={i} style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</div>
           <Field label="Feature Title"><input style={inputStyle} value={(s as any)[f.tK]} onChange={e => u(f.tK, e.target.value)} placeholder={f.pt} /></Field>
           <Field label="Feature Description"><input style={inputStyle} value={(s as any)[f.dK]} onChange={e => u(f.dK, e.target.value)} placeholder={f.pd} /></Field>
         </div>
       ))}
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 4 (Possession)</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 4 (Possession)</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Field label="Label"><input style={inputStyle} value={s.possessionLabel} onChange={e => u('possessionLabel', e.target.value)} placeholder="Possession" /></Field>
           <Field label="Date (also shown in badge)"><input style={inputStyle} value={s.possessionDate} onChange={e => u('possessionDate', e.target.value)} placeholder="March 2027" /></Field>
@@ -1163,7 +1472,7 @@ function Step4Form() {
       </div>
       <Field label="Project Building Image (Right side)">
         <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('projectImage', e.target.files[0])} />
-        {s.projectImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.projectImage.name}</span>}
+        {s.projectImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.projectImage)}</span>}
       </Field>
     </div>
   );
@@ -1182,8 +1491,8 @@ function Step5Form() {
   return (
     <div>
       {items.map((it, i) => (
-        <div key={i} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{it.label}</div>
+        <div key={i} style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{it.label}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Title"><input style={inputStyle} value={(s as any)[it.tK]} onChange={e => u(it.tK, e.target.value)} placeholder={it.pt} /></Field>
             <Field label="Status"><input style={inputStyle} value={(s as any)[it.sK]} onChange={e => u(it.sK, e.target.value)} placeholder={it.ps} /></Field>
@@ -1195,7 +1504,7 @@ function Step5Form() {
       </Field>
       <Field label="Construction Photo (Right side)">
         <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('constructionImage', e.target.files[0])} />
-        {s.constructionImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.constructionImage.name}</span>}
+        {s.constructionImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.constructionImage)}</span>}
       </Field>
     </div>
   );
@@ -1218,34 +1527,34 @@ function Step6Form() {
       <Field label="Slide Subtitle">
         <input style={inputStyle} value={s.subtitle} onChange={e => u('subtitle', e.target.value)} placeholder="RETAIL SPACES" />
       </Field>
-      
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 1</div>
+
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 1</div>
         <Field label="Label"><input style={inputStyle} value={s.floorHeightLabel} onChange={e => u('floorHeightLabel', e.target.value)} placeholder="Floor Height" /></Field>
         <Field label="Value"><input style={inputStyle} value={s.floorHeightValue} onChange={e => u('floorHeightValue', e.target.value)} placeholder={"12'5\""} /></Field>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 2</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 2</div>
         <Field label="Label"><input style={inputStyle} value={s.frontageLabel} onChange={e => u('frontageLabel', e.target.value)} placeholder="Frontage" /></Field>
         <Field label="Value"><input style={inputStyle} value={s.frontageValue} onChange={e => u('frontageValue', e.target.value)} placeholder="20' to 35'" /></Field>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 3</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 3</div>
         <Field label="Label"><input style={inputStyle} value={s.parkingLabel} onChange={e => u('parkingLabel', e.target.value)} placeholder="Parking" /></Field>
         <Field label="Value"><textarea style={textareaStyle} value={s.parkingValue} onChange={e => u('parkingValue', e.target.value)} placeholder="Ample Two Wheeler & Four Wheeler" /></Field>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 4</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 4</div>
         <Field label="Label"><input style={inputStyle} value={s.roadAccessLabel} onChange={e => u('roadAccessLabel', e.target.value)} placeholder="Road Access" /></Field>
         <Field label="Value"><input style={inputStyle} value={s.roadAccessValue} onChange={e => u('roadAccessValue', e.target.value)} placeholder="30 MT Wide Road" /></Field>
       </div>
 
       <Field label="Floor Plan Image (Right side)">
         <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('planImage', e.target.files[0])} />
-        {s.planImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.planImage.name}</span>}
+        {s.planImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.planImage)}</span>}
       </Field>
     </div>
   );
@@ -1268,34 +1577,34 @@ function Step7Form() {
       <Field label="Slide Subtitle">
         <input style={inputStyle} value={s.subtitle} onChange={e => u('subtitle', e.target.value)} placeholder="RETAIL SPACES" />
       </Field>
-      
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 1</div>
+
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 1</div>
         <Field label="Label"><input style={inputStyle} value={s.floorHeightLabel} onChange={e => u('floorHeightLabel', e.target.value)} placeholder="Floor Height" /></Field>
         <Field label="Value"><input style={inputStyle} value={s.floorHeightValue} onChange={e => u('floorHeightValue', e.target.value)} placeholder={"9'5\""} /></Field>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 2</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 2</div>
         <Field label="Label"><input style={inputStyle} value={s.bestForLabel} onChange={e => u('bestForLabel', e.target.value)} placeholder="Best for" /></Field>
         <Field label="Value"><input style={inputStyle} value={s.bestForValue} onChange={e => u('bestForValue', e.target.value)} placeholder="F&B / Lifestyle / Offices" /></Field>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 3</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 3</div>
         <Field label="Label"><input style={inputStyle} value={s.terraceLabel} onChange={e => u('terraceLabel', e.target.value)} placeholder="Open Terrace" /></Field>
         <Field label="Value"><input style={inputStyle} value={s.terraceValue} onChange={e => u('terraceValue', e.target.value)} placeholder="Provision" /></Field>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 4</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature 4</div>
         <Field label="Label"><input style={inputStyle} value={s.liftStaircaseLabel} onChange={e => u('liftStaircaseLabel', e.target.value)} placeholder="Lift & Staircase" /></Field>
         <Field label="Value"><input style={inputStyle} value={s.liftStaircaseValue} onChange={e => u('liftStaircaseValue', e.target.value)} placeholder="Access" /></Field>
       </div>
 
       <Field label="Floor Plan Image (Right side)">
         <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('planImage', e.target.files[0])} />
-        {s.planImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.planImage.name}</span>}
+        {s.planImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.planImage)}</span>}
       </Field>
     </div>
   );
@@ -1318,7 +1627,7 @@ function Step8Form() {
       <Field label="Slide Subtitle">
         <input style={inputStyle} value={s.subtitle} onChange={e => u('subtitle', e.target.value)} placeholder="BE IN THE COMPANY OF THE BEST" />
       </Field>
-      
+
       <Field label="Legend Items (One per line)">
         <textarea
           style={{ ...textareaStyle, minHeight: 120 }}
@@ -1330,7 +1639,7 @@ function Step8Form() {
 
       <Field label="Map Image (Right side)">
         <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('mapImage', e.target.files[0])} />
-        {s.mapImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.mapImage.name}</span>}
+        {s.mapImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.mapImage)}</span>}
       </Field>
     </div>
   );
@@ -1363,14 +1672,14 @@ function Step9Form() {
       </Field>
 
       {cats.map((cat, i) => (
-        <div key={i} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{cat.title}</div>
+        <div key={i} style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{cat.title}</div>
           <Field label="Label">
             <input style={inputStyle} value={(s as any)[cat.labelK]} onChange={e => u(cat.labelK, e.target.value)} placeholder={cat.defaultLabel} />
           </Field>
           <Field label="Image">
             <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u(cat.imgK, e.target.files[0])} />
-            {(s as any)[cat.imgK] && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {(s as any)[cat.imgK].name}</span>}
+            {(s as any)[cat.imgK] && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {(s as any)[cat.imgK].name}</span>}
           </Field>
         </div>
       ))}
@@ -1407,8 +1716,8 @@ function Step10Form() {
       </Field>
 
       {specs.map((spec, i) => (
-        <div key={i} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{spec.title}</div>
+        <div key={i} style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{spec.title}</div>
           <Field label="Label">
             <input style={inputStyle} value={(s as any)[spec.lK]} onChange={e => u(spec.lK, e.target.value)} placeholder={spec.dL} />
           </Field>
@@ -1418,14 +1727,14 @@ function Step10Form() {
         </div>
       ))}
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>QR Code Settings</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>QR Code Settings</div>
         <Field label="QR Target URL">
           <input style={inputStyle} value={s.qrUrl} onChange={e => u('qrUrl', e.target.value)} placeholder="https://maps.google.com" />
         </Field>
         <Field label="Or Upload Custom QR Image">
           <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('qrImage', e.target.files[0])} />
-          {s.qrImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.qrImage.name}</span>}
+          {s.qrImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.qrImage)}</span>}
         </Field>
       </div>
     </div>
@@ -1436,35 +1745,65 @@ function Step11Form() {
   const { data: { slide11: s }, updateSlide11 } = useFormData();
   const u = (k: any, v: any) => updateSlide11({ [k]: v });
 
-  const cards = [
-    { labelK: 'card1Label', defaultLabel: 'Prime Location\nHigh Visibility', title: 'Highlight 1' },
-    { labelK: 'card2Label', defaultLabel: 'Surrounded by\nPremium Brands', title: 'Highlight 2' },
-    { labelK: 'card3Label', defaultLabel: 'High Footfall\nCatchment', title: 'Highlight 3' },
-    { labelK: 'card4Label', defaultLabel: 'Modern Architecture\n& Design', title: 'Highlight 4' },
-    { labelK: 'card5Label', defaultLabel: 'Excellent\nConnectivity & Access', title: 'Highlight 5' },
-    { labelK: 'card6Label', defaultLabel: 'Strong Investment\n& Returns', title: 'Highlight 6' },
-    { labelK: 'card7Label', defaultLabel: 'Strong Investment\nPotential', title: 'Highlight 7' },
-  ];
-
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Field label="Slide Number">
-          <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="11" />
+          <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="14" />
         </Field>
       </div>
       <Field label="Slide Title">
         <input style={inputStyle} value={s.title} onChange={e => u('title', e.target.value)} placeholder="WHY INVEST IN MADHAV HIGHSTREET?" />
       </Field>
 
-      {cards.map((card, i) => (
-        <div key={i} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.title}</div>
-          <Field label="Label">
-            <textarea style={textareaStyle} value={(s as any)[card.labelK]} onChange={e => u(card.labelK, e.target.value)} placeholder={card.defaultLabel} />
-          </Field>
+      {/* Building Image Upload */}
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Background Building Photo</div>
+        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 10 }}>Upload the building image shown on the right side of the slide (dark overlay applied automatically).</p>
+        <Field label="Building Image">
+          <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('buildingImage', e.target.files[0])} />
+          {s.buildingImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.buildingImage)}</span>}
+        </Field>
+      </div>
+
+      {/* Category Selection for Icons */}
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Select Categories ({(s.selectedCategories || []).length}/7 selected)</div>
+        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 12 }}>Click to select up to 7 categories. These icons will be displayed on the slide with Lucide icons.</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {PREDEFINED_CATEGORIES.map(cat => {
+            const selectedCats = s.selectedCategories || [];
+            const isSelected = selectedCats.includes(cat.id);
+            const Icon = cat.icon;
+            return (
+              <div
+                key={cat.id}
+                onClick={() => {
+                  if (isSelected) {
+                    u('selectedCategories', selectedCats.filter((id: string) => id !== cat.id));
+                  } else if (selectedCats.length < 7) {
+                    u('selectedCategories', [...selectedCats, cat.id]);
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, userSelect: 'none',
+                  padding: '6px 12px', borderRadius: 20, cursor: 'pointer',
+                  fontSize: 12, fontWeight: isSelected ? 600 : 500,
+                  background: isSelected ? '#4B247A' : '#fff',
+                  color: isSelected ? '#fff' : '#4b5563',
+                  border: `1px solid ${isSelected ? '#4B247A' : '#d1d5db'}`,
+                  transition: 'all 0.2s',
+                  opacity: (!isSelected && selectedCats.length >= 7) ? 0.5 : 1,
+                  pointerEvents: (!isSelected && selectedCats.length >= 7) ? 'none' : 'auto',
+                }}
+              >
+                <Icon size={14} />
+                {cat.name.replace(/\\n/g, ' ')}
+              </div>
+            );
+          })}
         </div>
-      ))}
+      </div>
     </div>
   );
 }
@@ -1475,8 +1814,8 @@ function StepSiteVisibilityForm() {
 
   return (
     <div>
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header Text</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header Text</div>
         <Field label="Slide Number">
           <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="06" />
         </Field>
@@ -1487,20 +1826,20 @@ function StepSiteVisibilityForm() {
           <input style={inputStyle} value={s.subtitle} onChange={e => u('subtitle', e.target.value)} placeholder="EXCELLENT FRONTAGE & ACCESS" />
         </Field>
       </div>
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Site Visibility Photos</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Site Visibility Photos</div>
         <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 12 }}>Upload 3 photos for Left View, Front View, and Right View (shown in that order)</p>
         <Field label="Left View Photo">
           <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('leftViewImage', e.target.files[0])} />
-          {s.leftViewImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.leftViewImage.name}</span>}
+          {s.leftViewImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.leftViewImage)}</span>}
         </Field>
         <Field label="Front View Photo">
           <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('frontViewImage', e.target.files[0])} />
-          {s.frontViewImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.frontViewImage.name}</span>}
+          {s.frontViewImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.frontViewImage)}</span>}
         </Field>
         <Field label="Right View Photo">
           <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('rightViewImage', e.target.files[0])} />
-          {s.rightViewImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.rightViewImage.name}</span>}
+          {s.rightViewImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.rightViewImage)}</span>}
         </Field>
       </div>
     </div>
@@ -1513,8 +1852,8 @@ function StepFirstFloorPlanForm() {
 
   return (
     <div>
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Field label="Slide Number">
             <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="08" />
@@ -1528,8 +1867,8 @@ function StepFirstFloorPlanForm() {
         </Field>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Floor Plan Features</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Floor Plan Features</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Field label="Feature 1 Title">
             <input style={inputStyle} value={s.feature1Title} onChange={e => u('feature1Title', e.target.value)} placeholder="Floor Height" />
@@ -1564,11 +1903,11 @@ function StepFirstFloorPlanForm() {
         </div>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Floor Plan Layout</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Floor Plan Layout</div>
         <Field label="Upload Floor Plan Image">
           <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('floorPlanImage', e.target.files[0])} />
-          {s.floorPlanImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.floorPlanImage.name}</span>}
+          {s.floorPlanImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.floorPlanImage)}</span>}
         </Field>
       </div>
     </div>
@@ -1592,8 +1931,8 @@ function StepNearbyCommercialForm() {
 
   return (
     <div>
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Field label="Slide Number">
             <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="12" />
@@ -1607,10 +1946,10 @@ function StepNearbyCommercialForm() {
         </Field>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nearby Buildings</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nearby Buildings</div>
         <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 12 }}>Enter building names, distances, and upload photos for each building</p>
-        
+
         {bInputs.map((bi) => (
           <div key={bi.num} style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: 12, marginBottom: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
@@ -1623,17 +1962,17 @@ function StepNearbyCommercialForm() {
             </div>
             <Field label={`Building ${bi.num} Photo`}>
               <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u(bi.imgK, e.target.files[0])} />
-              {(s as any)[bi.imgK] && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {(s as any)[bi.imgK].name}</span>}
+              {(s as any)[bi.imgK] && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {(s as any)[bi.imgK].name}</span>}
             </Field>
           </div>
         ))}
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ecosystem Background Photo</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ecosystem Background Photo</div>
         <Field label="Upload Background Photo (Optional)">
           <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('ecosystemImage', e.target.files[0])} />
-          {s.ecosystemImage && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.ecosystemImage.name}</span>}
+          {s.ecosystemImage && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.ecosystemImage)}</span>}
         </Field>
       </div>
     </div>
@@ -1646,8 +1985,8 @@ function StepContactForm() {
 
   return (
     <div>
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Slide Header</div>
         <Field label="Slide Number">
           <input style={inputStyle} value={s.slideNumber} onChange={e => u('slideNumber', e.target.value)} placeholder="15" />
         </Field>
@@ -1656,8 +1995,8 @@ function StepContactForm() {
         </Field>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Company Information</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Company Information</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Field label="Company Name">
             <input style={inputStyle} value={s.companyName} onChange={e => u('companyName', e.target.value)} placeholder="AESTHETIC ARC" />
@@ -1668,12 +2007,12 @@ function StepContactForm() {
         </div>
         <Field label="Company Logo">
           <input type="file" accept="image/*" style={fileStyle} onChange={e => e.target.files && u('companyLogo', e.target.files[0])} />
-          {s.companyLogo && <span style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4, display: 'block' }}>✓ {s.companyLogo.name}</span>}
+          {s.companyLogo && <span style={{ fontSize: 11, color: '#FF8435', marginTop: 4, display: 'block' }}>✓ {getFileName(s.companyLogo)}</span>}
         </Field>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: '#14532d', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Details</div>
+      <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: '#7D3C70', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Details</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Field label="Phone Number 1">
             <input style={inputStyle} value={s.phone1} onChange={e => u('phone1', e.target.value)} placeholder="+91 97129 06363" />
@@ -1720,1419 +2059,140 @@ export default function StepperApp() {
   const [step, setStep] = useState(0); // 0-indexed
   const [showAllSlides, setShowAllSlides] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isJsonPanelOpen, setIsJsonPanelOpen] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [finalizeSuccess, setFinalizeSuccess] = useState(false);
   const { data } = useFormData();
+  const { slideStatuses, slideSnapshots, finalizeSlide, allFinalized, finalizedCount, totalSlides } = useSlideFinalization();
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const CurrentForm = STEPS[step].form;
   const CurrentPreview = SLIDE_PREVIEWS[step];
+  const currentStatus = slideStatuses[step];
 
-  // Helper: convert a File to base64 data URL
-  const fileToBase64 = (file: File | Blob): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.readAsDataURL(file);
-    });
-  };
-
-  // Helper: fetch an image URL and return base64 data URL
-  const urlToBase64 = (url: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = url;
-    });
-  };
-
-  // Helper: get base64 from File or fallback URL, returns null if both fail
-  const getImageBase64 = async (file: File | null, fallbackUrl: string): Promise<string | null> => {
-    if (file) {
-      return await fileToBase64(file);
-    }
+  // Snapshot-based PDF download — only works when all slides are finalized
+  const handleDownloadPDF = async () => {
+    if (!allFinalized) return;
     try {
-      return await urlToBase64(fallbackUrl);
-    } catch {
-      return null;
-    }
-  };
-
-  const handleDownloadPPT = async () => {
-    setIsGenerating(true);
-    
-    try {
-      const PptxGenJS = await loadPptxGenJS();
-      const pptx = new PptxGenJS();
-
-      // ==================== SLIDE 1: COVER PAGE ====================
-      const slide1 = pptx.addSlide();
-      const themeColor = data.slide1.themeColor.replace('#', '');
-      const fontColor = data.slide1.fontColor.replace('#', '');
-      
-      // Background image
-      const bgImageData = await getImageBase64(
-        data.slide1.backgroundImage,
-        'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
-      );
-      
-      if (bgImageData) {
-        slide1.background = { data: bgImageData };
-      } else {
-        slide1.background = { color: themeColor };
-      }
-      
-      // Gradient overlay – simulate left-to-right gradient with multiple rect strips
-      // Left side: nearly opaque theme color → right side: transparent
-      const gradientSteps = [
-        { x: 0, w: 3, transparency: 5 },    // almost solid
-        { x: 3, w: 1.5, transparency: 20 },  // mostly opaque
-        { x: 4.5, w: 1.5, transparency: 45 }, // semi-transparent
-        { x: 6, w: 1.5, transparency: 70 },   // mostly transparent
-        { x: 7.5, w: 2.5, transparency: 90 }, // nearly invisible
-      ];
-      gradientSteps.forEach(g => {
-        slide1.addShape(pptx.ShapeType.rect, {
-          x: g.x, y: 0, w: g.w, h: 7.5,
-          fill: { color: themeColor, transparency: g.transparency },
-          line: { type: 'none' }
-        });
-      });
-
-      // Slide number badge
-      slide1.addText(data.slide1.slideNumber || '01', {
-        x: 0.4, y: 0.35, w: 0.7, h: 0.45, fontSize: 16, bold: true,
-        color: fontColor, fill: { color: themeColor },
-        align: 'center', valign: 'middle',
-      });
-
-      // Title
-      slide1.addText(data.slide1.title || 'MADHAV\nHIGHSTREET', {
-        x: 0.4, y: 1.0, w: 5, h: 1.4, fontSize: 44, bold: true,
-        color: fontColor, fontFace: 'Arial',
-      });
-
-      // Subtitle
-      slide1.addText(data.slide1.subtitle || 'THE NEXT PREMIUM RETAIL DESTINATION', {
-        x: 0.4, y: 2.5, w: 5, h: 0.5, fontSize: 16, bold: true,
-        color: fontColor, fontFace: 'Arial',
-      });
-
-      // Address
-      slide1.addText(data.slide1.address || 'SINDHU BHAVAN ROAD,\nBODAKDEV, AHMEDABAD', {
-        x: 0.4, y: 3.1, w: 5, h: 0.65, fontSize: 12,
-        color: fontColor, fontFace: 'Arial',
-      });
-
-      // Divider line
-      slide1.addShape(pptx.ShapeType.rect, {
-        x: 0.4, y: 3.85, w: 1.2, h: 0.03,
-        fill: { color: fontColor },
-        line: { type: 'none' }
-      });
-
-      // Presented by
-      slide1.addText('Presented by', {
-        x: 0.4, y: 4.05, w: 5, h: 0.3, fontSize: 10,
-        color: fontColor, fontFace: 'Arial',
-      });
-
-      // Logo + Company name
-      let logoData: string | null = null;
-      if (data.slide1.logo) {
-        logoData = await fileToBase64(data.slide1.logo);
-      }
-
-      if (logoData) {
-        slide1.addImage({
-          data: logoData,
-          x: 0.4, y: 4.4, w: 0.4, h: 0.4,
-          rounding: true,
-        });
-        slide1.addText(data.slide1.companyName || 'AESTHETIC ARC', {
-          x: 0.9, y: 4.35, w: 4, h: 0.3, fontSize: 14, bold: true,
-          color: fontColor, fontFace: 'Arial',
-        });
-        slide1.addText(data.slide1.companyTagline || 'PROPERTY LEASING COMPANY', {
-          x: 0.9, y: 4.65, w: 4, h: 0.25, fontSize: 9,
-          color: fontColor, fontFace: 'Arial',
-        });
-      } else {
-        // Orange logo placeholder square with "A"
-        slide1.addShape(pptx.ShapeType.rect, {
-          x: 0.4, y: 4.4, w: 0.35, h: 0.35,
-          fill: { color: 'ff6b00' },
-          line: { type: 'none' },
-          rectRadius: 0.05,
-        });
-        slide1.addText('A', {
-          x: 0.4, y: 4.4, w: 0.35, h: 0.35, fontSize: 14, bold: true,
-          color: 'FFFFFF', align: 'center', valign: 'middle',
-        });
-        slide1.addText(data.slide1.companyName || 'AESTHETIC ARC', {
-          x: 0.85, y: 4.35, w: 4, h: 0.3, fontSize: 14, bold: true,
-          color: fontColor, fontFace: 'Arial',
-        });
-        slide1.addText(data.slide1.companyTagline || 'PROPERTY LEASING COMPANY', {
-          x: 0.85, y: 4.65, w: 4, h: 0.25, fontSize: 9,
-          color: fontColor, fontFace: 'Arial',
-        });
-      }
-
-      // Categories – single row of 10 at the bottom (matching web preview)
-      const categories = [
-        'Fashion', 'Retail', 'Lifestyle', 'F&B', 'Electronics',
-        'Hypermarket', 'Corporate\nOffices', 'Health &\nWellness', 'Multiplex', 'Game Zone',
-      ];
-      // Unicode icons that render well in PowerPoint
-      const catIcons = ['🏪', '🛍️', '🌿', '🍽️', '💻', '🛒', '🏢', '❤️', '🎬', '🎮'];
-
-      const catY = 5.25;
-      const catW = 0.82;
-      const catH = 0.75;
-      const catGap = 0.1;
-      const totalCatWidth = 10 * catW + 9 * catGap; // ~9.1
-      const actualStartX = (10 - totalCatWidth) / 2; // center them
-
-      categories.forEach((name, i) => {
-        const xPos = actualStartX + i * (catW + catGap);
-        // Background box
-        slide1.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: catY, w: catW, h: catH,
-          fill: { color: fontColor, transparency: 85 },
-          line: { color: fontColor, width: 0.5, dashType: 'solid' },
-          rectRadius: 0.05,
-        });
-        // Icon
-        slide1.addText(catIcons[i], {
-          x: xPos, y: catY, w: catW, h: catH * 0.55, fontSize: 16,
-          align: 'center', valign: 'middle',
-        });
-        // Name
-        slide1.addText(name, {
-          x: xPos, y: catY + catH * 0.5, w: catW, h: catH * 0.5, fontSize: 6,
-          color: fontColor, align: 'center', valign: 'top', bold: true, fontFace: 'Arial',
-        });
-      });
-
-      // ==================== SLIDE 2: CITY AT A GLANCE ====================
-      const slide2 = pptx.addSlide();
-      slide2.background = { color: 'FFFFFF' };
-      
-      // City image on right side
-      const cityImageData = await getImageBase64(
-        data.slide2.cityImage,
-        'https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=2070&auto=format&fit=crop'
-      );
-      
-      if (cityImageData) {
-        slide2.addImage({
-          data: cityImageData,
-          x: 5.5, y: 0, w: 4.5, h: 7.5,
-          sizing: { type: 'cover', w: 4.5, h: 7.5 },
-        });
-        // White fade from left
-        slide2.addShape(pptx.ShapeType.rect, {
-          x: 5.5, y: 0, w: 1.5, h: 7.5,
-          fill: { color: 'FFFFFF', transparency: 40 },
-          line: { type: 'none' }
-        });
-      } else {
-        slide2.addShape(pptx.ShapeType.rect, {
-          x: 5.5, y: 0, w: 4.5, h: 7.5,
-          fill: { color: 'e5e7eb' },
-          line: { type: 'none' }
-        });
-      }
-
-      // Header
-      slide2.addText('02', {
-        x: 0.5, y: 0.4, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slide2.addText(data.slide2.cityName || 'AHMEDABAD', {
-        x: 1.15, y: 0.35, w: 4, h: 0.55, fontSize: 28, bold: true, color: '3d1a6e',
-      });
-      slide2.addText('AT A GLANCE', {
-        x: 1.15, y: 0.9, w: 4, h: 0.45, fontSize: 24, bold: true, color: 'f97316',
-      });
-      slide2.addText('A Thriving City. A Growing Opportunity.', {
-        x: 1.15, y: 1.35, w: 4, h: 0.3, fontSize: 10, color: '555555',
-      });
-
-      // Stats in grid (4 columns x 2 rows)
-      const stats = [
-        { value: data.slide2.population || '90.6 Lakh+', label: 'Population' },
-        { value: data.slide2.gdp || '$135 Billion+', label: 'GDP' },
-        { value: data.slide2.gdpGrowth || '6.7%+', label: 'GDP Growth' },
-        { value: "World's 1st", label: data.slide2.worldFirst || 'Heritage City With BRTS', highlight: true },
-        { value: data.slide2.metroKm || '40 KM+', label: 'Metro Network' },
-        { value: data.slide2.brtsKm || '160 KM+', label: 'BRTS Network' },
-        { value: data.slide2.dailyFlights || '130+', label: 'Daily Flights' },
-        { value: 'Top 3', label: data.slide2.retailRank || 'Fastest Growing Retail Market', highlight: true },
-      ];
-
-      stats.forEach((stat, i) => {
-        const col = i % 4;
-        const row = Math.floor(i / 4);
-        const xPos = 0.4 + (col * 1.2);
-        const yPos = 1.85 + (row * 1.25);
-        
-        const borderColor = stat.highlight ? '3d1a6e' : 'e5e7eb';
-        const bgColor = stat.highlight ? 'f5f0ff' : 'FFFFFF';
-        
-        slide2.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos, w: 1.1, h: 1.1,
-          fill: { color: bgColor },
-          line: { color: borderColor, width: 1 },
-          rectRadius: 0.05,
-        });
-        slide2.addText(stat.value, {
-          x: xPos + 0.08, y: yPos + 0.15, w: 0.95, h: 0.4,
-          fontSize: 12, bold: true, color: '3d1a6e',
-        });
-        slide2.addText(stat.label, {
-          x: xPos + 0.08, y: yPos + 0.6, w: 0.95, h: 0.4,
-          fontSize: 7, color: '666666',
-        });
-      });
-
-      // Infrastructure section
-      const infraLines = (data.slide2.infrastructure || '').split('\n').filter(Boolean);
-      if (infraLines.length > 0) {
-        slide2.addText('UPCOMING INFRASTRUCTURE', {
-          x: 0.4, y: 4.5, w: 5, h: 0.35, fontSize: 10, bold: true, color: '3d1a6e',
-          letterSpacing: 1,
-        });
-        const half = Math.ceil(infraLines.length / 2);
-        infraLines.forEach((line, i) => {
-          const col = i < half ? 0 : 1;
-          const row = i < half ? i : i - half;
-          slide2.addText(`• ${line}`, {
-            x: 0.4 + (col * 2.5), y: 4.95 + (row * 0.3), w: 2.4, h: 0.28,
-            fontSize: 8, color: '374151',
-          });
-        });
-      }
-
-      // ==================== SLIDE 3: PREMIUM LOCATION ====================
-      const slide3 = pptx.addSlide();
-      slide3.background = { color: 'FFFFFF' };
-      
-      // Map image on right
-      const mapImageData = await getImageBase64(
-        data.slide3.mapImage,
-        'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop'
-      );
-      
-      if (mapImageData) {
-        slide3.addImage({
-          data: mapImageData,
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          sizing: { type: 'cover', w: 5.5, h: 7.5 },
-        });
-        // White fade from left
-        slide3.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 1.8, h: 7.5,
-          fill: { color: 'FFFFFF', transparency: 30 },
-          line: { type: 'none' }
-        });
-      } else {
-        slide3.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          fill: { color: 'e5e7eb' },
-          line: { type: 'none' }
-        });
-      }
-
-      // Header
-      slide3.addText('03', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      const locationTitle = (data.slide3.locationTitle || 'PREMIUM LOCATION\nTHAT CONNECTS EVERYTHING').split('\n');
-      slide3.addText(locationTitle[0] || 'PREMIUM LOCATION', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 24, bold: true, color: '3d1a6e',
-      });
-      if (locationTitle[1]) {
-        slide3.addText(locationTitle[1], {
-          x: 1.15, y: 1.45, w: 3.5, h: 0.5, fontSize: 22, bold: true, color: 'f97316',
-        });
-      }
-
-      slide3.addText(data.slide3.address || 'Sindhu Bhavan Road,\nBodakdev, Ahmedabad', {
-        x: 0.5, y: 2.2, w: 4, h: 0.6, fontSize: 12, color: '374151',
-      });
-
-      // Location points with orange icon boxes
-      const points = [
-        { title: data.slide3.point1Title || '2 Mins from SG Highway', desc: data.slide3.point1Desc || 'Excellent Connectivity' },
-        { title: data.slide3.point2Title || 'Easy Access to SP Ring Road', desc: data.slide3.point2Desc || '' },
-        { title: data.slide3.point3Title || 'Surrounded by Premium', desc: data.slide3.point3Desc || 'Residential & Commercial Developments' },
-      ];
-
-      points.forEach((point, i) => {
-        const yPos = 3.1 + (i * 1.1);
-        // Orange bordered icon box
-        slide3.addShape(pptx.ShapeType.rect, {
-          x: 0.5, y: yPos, w: 0.35, h: 0.35,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'f97316', width: 1.5 },
-          rectRadius: 0.05,
-        });
-        slide3.addText(point.title, {
-          x: 0.95, y: yPos - 0.05, w: 3.5, h: 0.35, fontSize: 13, bold: true, color: '3d1a6e',
-        });
-        if (point.desc) {
-          slide3.addText(point.desc, {
-            x: 0.95, y: yPos + 0.3, w: 3.5, h: 0.3, fontSize: 10, color: '6b7280',
-          });
-        }
-      });
-
-      // Google Maps button
-      slide3.addShape(pptx.ShapeType.rect, {
-        x: 0.5, y: 6.2, w: 2.2, h: 0.4,
-        fill: { color: 'f97316' },
-        line: { type: 'none' },
-        rectRadius: 0.2,
-      });
-      slide3.addText('📍 VIEW ON GOOGLE MAPS', {
-        x: 0.5, y: 6.2, w: 2.2, h: 0.4, fontSize: 8, bold: true,
-        color: 'FFFFFF', align: 'center', valign: 'middle',
-        hyperlink: { url: data.slide3.mapsUrl || 'https://maps.google.com' },
-      });
-
-      // ==================== SLIDE 4: PROJECT SHOWCASE ====================
-      const slide4 = pptx.addSlide();
-      slide4.background = { color: 'FFFFFF' };
-      
-      // Project image on right
-      const projectImageData = await getImageBase64(
-        data.slide4.projectImage,
-        'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
-      );
-      
-      if (projectImageData) {
-        slide4.addImage({
-          data: projectImageData,
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          sizing: { type: 'cover', w: 5.5, h: 7.5 },
-        });
-        slide4.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 1.8, h: 7.5,
-          fill: { color: 'FFFFFF', transparency: 30 },
-          line: { type: 'none' }
-        });
-      } else {
-        slide4.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          fill: { color: 'e5e7eb' },
-          line: { type: 'none' }
-        });
-      }
-
-      // Header
-      slide4.addText('04', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slide4.addText('PROJECT', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-      slide4.addText('SHOWCASE', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
-      });
-
-      const features = [
-        { title: data.slide4.feature1Title || 'Premium Corner Plot', desc: data.slide4.feature1Desc || 'with Wide Frontage' },
-        { title: data.slide4.feature2Title || 'Modern Retail Architecture', desc: data.slide4.feature2Desc || 'with Maximum Visibility' },
-        { title: data.slide4.feature3Title || 'Designed for Premium Brands', desc: data.slide4.feature3Desc || '& High Footfall' },
-        { title: data.slide4.possessionLabel || 'Possession', desc: data.slide4.possessionDate || 'March 2027' },
-      ];
-
-      features.forEach((feature, i) => {
-        const yPos = 2.4 + (i * 1.1);
-        // Orange bordered icon box
-        slide4.addShape(pptx.ShapeType.rect, {
-          x: 0.5, y: yPos, w: 0.35, h: 0.35,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'f97316', width: 1.5 },
-          rectRadius: 0.05,
-        });
-        slide4.addText(feature.title, {
-          x: 0.95, y: yPos - 0.05, w: 3.5, h: 0.35, fontSize: 13, bold: true, color: '3d1a6e',
-        });
-        slide4.addText(feature.desc, {
-          x: 0.95, y: yPos + 0.3, w: 3.5, h: 0.3, fontSize: 10, color: '6b7280',
-        });
-      });
-
-      // Possession badge on image
-      slide4.addShape(pptx.ShapeType.rect, {
-        x: 7.5, y: 5.8, w: 2, h: 0.9,
-        fill: { color: '3d1a6e' },
-        line: { type: 'none' },
-        rectRadius: 0.08,
-      });
-      slide4.addText('EXPECTED POSSESSION', {
-        x: 7.5, y: 5.85, w: 2, h: 0.3, fontSize: 7, color: 'FFFFFF', align: 'center',
-        letterSpacing: 1,
-      });
-      slide4.addText((data.slide4.possessionDate || 'MARCH 2027').toUpperCase(), {
-        x: 7.5, y: 6.15, w: 2, h: 0.45, fontSize: 15, bold: true, color: 'FFFFFF', align: 'center',
-      });
-
-      // ==================== SLIDE 5: CONSTRUCTION PROGRESS ====================
-      const slide5 = pptx.addSlide();
-      slide5.background = { color: 'FFFFFF' };
-      
-      // Construction image on right
-      const constructionImageData = await getImageBase64(
-        data.slide5.constructionImage,
-        'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2070&auto=format&fit=crop'
-      );
-      
-      if (constructionImageData) {
-        slide5.addImage({
-          data: constructionImageData,
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          sizing: { type: 'cover', w: 5.5, h: 7.5 },
-        });
-        slide5.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 1.8, h: 7.5,
-          fill: { color: 'FFFFFF', transparency: 30 },
-          line: { type: 'none' }
-        });
-      } else {
-        slide5.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          fill: { color: 'e5e7eb' },
-          line: { type: 'none' }
-        });
-      }
-
-      // Header
-      slide5.addText('05', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slide5.addText('CONSTRUCTION', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-      slide5.addText('PROGRESS', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
-      });
-
-      const progressItems = [
-        { title: data.slide5.progress1Title || 'Foundation', status: data.slide5.progress1Status || 'Completed' },
-        { title: data.slide5.progress2Title || 'Structure', status: data.slide5.progress2Status || 'In Progress' },
-        { title: data.slide5.progress3Title || 'Finishing', status: data.slide5.progress3Status || 'Ahead' },
-        { title: data.slide5.progress4Title || 'Possession', status: data.slide5.progress4Status || 'March 2027' },
-      ];
-
-      progressItems.forEach((item, i) => {
-        const yPos = 2.4 + (i * 1.1);
-        // Orange circle icon
-        slide5.addShape(pptx.ShapeType.ellipse, {
-          x: 0.5, y: yPos, w: 0.35, h: 0.35,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'f97316', width: 1.5 },
-        });
-        slide5.addText(item.title, {
-          x: 0.95, y: yPos - 0.05, w: 3.5, h: 0.35, fontSize: 13, bold: true, color: '3d1a6e',
-        });
-        slide5.addText(item.status, {
-          x: 0.95, y: yPos + 0.3, w: 3.5, h: 0.3, fontSize: 10, color: '6b7280',
-        });
-      });
-
-      // Current status badge on image
-      slide5.addShape(pptx.ShapeType.rect, {
-        x: 7.5, y: 5.8, w: 2, h: 0.9,
-        fill: { color: '3d1a6e' },
-        line: { type: 'none' },
-        rectRadius: 0.08,
-      });
-      slide5.addText('CURRENT STATUS', {
-        x: 7.5, y: 5.85, w: 2, h: 0.3, fontSize: 7, color: 'FFFFFF', align: 'center',
-        letterSpacing: 1,
-      });
-      slide5.addText((data.slide5.currentStatus || 'JUNE 2026').toUpperCase(), {
-        x: 7.5, y: 6.15, w: 2, h: 0.45, fontSize: 15, bold: true, color: 'FFFFFF', align: 'center',
-      });
-
-      // ==================== SLIDE 6: SITE VISIBILITY ====================
-      const slideSiteVisibility = pptx.addSlide();
-      slideSiteVisibility.background = { color: 'FFFFFF' };
-
-      // Header
-      slideSiteVisibility.addText(data.slideSiteVisibility.slideNumber || '06', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slideSiteVisibility.addText(data.slideSiteVisibility.title || 'SITE VISIBILITY', {
-        x: 1.15, y: 0.9, w: 5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-      slideSiteVisibility.addText(data.slideSiteVisibility.subtitle || 'EXCELLENT FRONTAGE & ACCESS', {
-        x: 1.15, y: 1.45, w: 5, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
-      });
-
-      const visibilityImages = [
-        { label: 'LEFT VIEW', image: data.slideSiteVisibility.leftViewImage, defaultUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop' },
-        { label: 'FRONT VIEW', image: data.slideSiteVisibility.frontViewImage, defaultUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop' },
-        { label: 'RIGHT VIEW', image: data.slideSiteVisibility.rightViewImage, defaultUrl: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=800&auto=format&fit=crop' },
-      ];
-
-      const visW = 2.8;
-      const visGap = 0.2;
-      const visStartX = (10 - (3 * visW + 2 * visGap)) / 2;
-
-      for (let i = 0; i < 3; i++) {
-        const item = visibilityImages[i];
-        const xPos = visStartX + i * (visW + visGap);
-        const yPos = 2.6;
-
-        const visImgData = await getImageBase64(item.image, item.defaultUrl);
-
-        if (visImgData) {
-          slideSiteVisibility.addImage({
-            data: visImgData,
-            x: xPos, y: yPos, w: visW, h: 2.1,
-            sizing: { type: 'cover', w: visW, h: 2.1 }
-          });
-        } else {
-          slideSiteVisibility.addShape(pptx.ShapeType.rect, {
-            x: xPos, y: yPos, w: visW, h: 2.1,
-            fill: { color: 'e5e7eb' },
-            line: { type: 'none' }
-          });
-        }
-
-        // Label box underneath
-        slideSiteVisibility.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos + 2.1, w: visW, h: 0.5,
-          fill: { color: '3d1a6e' },
-          line: { type: 'none' }
-        });
-        slideSiteVisibility.addText(item.label, {
-          x: xPos, y: yPos + 2.1, w: visW, h: 0.5,
-          fontSize: 10, bold: true, color: 'FFFFFF',
-          align: 'center', valign: 'middle',
-        });
-        
-        // Orange accent line below label
-        slideSiteVisibility.addShape(pptx.ShapeType.rect, {
-          x: xPos + 0.5, y: yPos + 2.7, w: visW - 1.0, h: 0.04,
-          fill: { color: '3d1a6e' },
-          line: { type: 'none' }
-        });
-      }
-
-      // ==================== SLIDE 7: GROUND FLOOR PLAN ====================
-      const slide6 = pptx.addSlide();
-      slide6.background = { color: 'FFFFFF' };
-      
-      // Plan image on right
-      const planImageData = await getImageBase64(
-        data.slide6.planImage,
-        'https://images.unsplash.com/photo-1598928506311-c55dd1b4eb64?q=80&w=800&auto=format&fit=crop'
-      );
-      
-      if (planImageData) {
-        slide6.addImage({
-          data: planImageData,
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          sizing: { type: 'cover', w: 5.5, h: 7.5 },
-        });
-        slide6.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 1.8, h: 7.5,
-          fill: { color: 'FFFFFF', transparency: 30 },
-          line: { type: 'none' }
-        });
-      } else {
-        slide6.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          fill: { color: 'e5e7eb' },
-          line: { type: 'none' }
-        });
-      }
-
-      // Header
-      slide6.addText(data.slide6.slideNumber || '06', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slide6.addText(data.slide6.title || 'GROUND FLOOR PLAN', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-      slide6.addText(data.slide6.subtitle || 'RETAIL SPACES', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
-      });
-
-      const floorPlanFeatures = [
-        { label: data.slide6.floorHeightLabel || 'Floor Height', val: data.slide6.floorHeightValue || '12\'5"', icon: '📏' },
-        { label: data.slide6.frontageLabel || 'Frontage', val: data.slide6.frontageValue || '20\' to 35\'', icon: '↔️' },
-        { label: data.slide6.parkingLabel || 'Parking', val: data.slide6.parkingValue || 'Ample Two Wheeler\n& Four Wheeler', icon: '🚗' },
-        { label: data.slide6.roadAccessLabel || 'Road Access', val: data.slide6.roadAccessValue || '30 MT Wide Road', icon: '🛣️' },
-      ];
-
-      floorPlanFeatures.forEach((feat, i) => {
-        const yPos = 2.4 + (i * 1.1);
-        // Orange bordered icon box
-        slide6.addShape(pptx.ShapeType.rect, {
-          x: 0.5, y: yPos, w: 0.35, h: 0.35,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'f97316', width: 1.5 },
-          rectRadius: 0.05,
-        });
-        // Icon emoji inside the box
-        slide6.addText(feat.icon, {
-          x: 0.5, y: yPos, w: 0.35, h: 0.35, fontSize: 12,
-          align: 'center', valign: 'middle',
-        });
-        slide6.addText(feat.label, {
-          x: 0.95, y: yPos - 0.05, w: 3.5, h: 0.25, fontSize: 10, color: '6b7280',
-        });
-        slide6.addText(feat.val, {
-          x: 0.95, y: yPos + 0.2, w: 3.5, h: 0.4, fontSize: 13, bold: true, color: '3d1a6e',
-        });
-      });
-
-      // ==================== SLIDE 8: FIRST FLOOR PLAN ====================
-      const slideFirstFloorPlan = pptx.addSlide();
-      slideFirstFloorPlan.background = { color: 'FFFFFF' };
-
-      // Plan image on right
-      const floorPlanImageData = await getImageBase64(
-        data.slideFirstFloorPlan.floorPlanImage,
-        'https://images.unsplash.com/photo-1598928506311-c55dd1b4eb64?q=80&w=800&auto=format&fit=crop'
-      );
-
-      if (floorPlanImageData) {
-        slideFirstFloorPlan.addImage({
-          data: floorPlanImageData,
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          sizing: { type: 'cover', w: 5.5, h: 7.5 },
-        });
-        slideFirstFloorPlan.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 1.8, h: 7.5,
-          fill: { color: 'FFFFFF', transparency: 30 },
-          line: { type: 'none' }
-        });
-      } else {
-        slideFirstFloorPlan.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          fill: { color: 'e5e7eb' },
-          line: { type: 'none' }
-        });
-      }
-
-      // Header
-      slideFirstFloorPlan.addText(data.slideFirstFloorPlan.slideNumber || '08', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slideFirstFloorPlan.addText(data.slideFirstFloorPlan.title || 'FIRST FLOOR PLAN', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-      slideFirstFloorPlan.addText(data.slideFirstFloorPlan.subtitle || 'RETAIL SPACES', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
-      });
-
-      const firstFloorPlanFeatures = [
-        { label: data.slideFirstFloorPlan.feature1Title || 'Floor Height', val: data.slideFirstFloorPlan.feature1Desc || '10\'5"', icon: '📏' },
-        { label: data.slideFirstFloorPlan.feature2Title || 'Frontage', val: data.slideFirstFloorPlan.feature2Desc || '18\' to 28\'', icon: '📐' },
-        { label: data.slideFirstFloorPlan.feature3Title || 'Parking', val: data.slideFirstFloorPlan.feature3Desc || 'Ample', icon: '🅿️' },
-        { label: data.slideFirstFloorPlan.feature4Title || 'Escalator & Lift', val: data.slideFirstFloorPlan.feature4Desc || 'For Easy Access', icon: '🛗' },
-      ];
-
-      firstFloorPlanFeatures.forEach((feat, i) => {
-        const yPos = 2.4 + (i * 1.1);
-        // Orange bordered icon box
-        slideFirstFloorPlan.addShape(pptx.ShapeType.rect, {
-          x: 0.5, y: yPos, w: 0.35, h: 0.35,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'f97316', width: 1.5 },
-          rectRadius: 0.05,
-        });
-        // Icon emoji inside the box
-        slideFirstFloorPlan.addText(feat.icon, {
-          x: 0.5, y: yPos, w: 0.35, h: 0.35, fontSize: 12,
-          align: 'center', valign: 'middle',
-        });
-        slideFirstFloorPlan.addText(feat.label, {
-          x: 0.95, y: yPos - 0.05, w: 3.5, h: 0.25, fontSize: 10, color: '6b7280',
-        });
-        slideFirstFloorPlan.addText(feat.val, {
-          x: 0.95, y: yPos + 0.2, w: 3.5, h: 0.4, fontSize: 13, bold: true, color: '3d1a6e',
-        });
-      });
-
-      // ==================== SLIDE 7: SECOND FLOOR PLAN ====================
-      const slide7 = pptx.addSlide();
-      slide7.background = { color: 'FFFFFF' };
-      
-      // Plan image on right
-      const plan7ImageData = await getImageBase64(
-        data.slide7.planImage,
-        'https://images.unsplash.com/photo-1598928506311-c55dd1b4eb64?q=80&w=800&auto=format&fit=crop'
-      );
-      
-      if (plan7ImageData) {
-        slide7.addImage({
-          data: plan7ImageData,
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          sizing: { type: 'cover', w: 5.5, h: 7.5 },
-        });
-        slide7.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 1.8, h: 7.5,
-          fill: { color: 'FFFFFF', transparency: 30 },
-          line: { type: 'none' }
-        });
-      } else {
-        slide7.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          fill: { color: 'e5e7eb' },
-          line: { type: 'none' }
-        });
-      }
-
-      // Header
-      slide7.addText(data.slide7.slideNumber || '07', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slide7.addText(data.slide7.title || 'SECOND FLOOR PLAN', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-      slide7.addText(data.slide7.subtitle || 'RETAIL SPACES', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 30, bold: true, color: 'f97316',
-      });
-
-      const floorPlan7Features = [
-        { label: data.slide7.floorHeightLabel || 'Floor Height', val: data.slide7.floorHeightValue || '9\'5"', icon: '📏' },
-        { label: data.slide7.bestForLabel || 'Best for', val: data.slide7.bestForValue || 'F&B / Lifestyle / Offices', icon: '💼' },
-        { label: data.slide7.terraceLabel || 'Open Terrace', val: data.slide7.terraceValue || 'Provision', icon: '☀️' },
-        { label: data.slide7.liftStaircaseLabel || 'Lift & Staircase', val: data.slide7.liftStaircaseValue || 'Access', icon: '🏢' },
-      ];
-
-      floorPlan7Features.forEach((feat, i) => {
-        const yPos = 2.4 + (i * 1.1);
-        // Orange bordered icon box
-        slide7.addShape(pptx.ShapeType.rect, {
-          x: 0.5, y: yPos, w: 0.35, h: 0.35,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'f97316', width: 1.5 },
-          rectRadius: 0.05,
-        });
-        // Icon emoji inside the box
-        slide7.addText(feat.icon, {
-          x: 0.5, y: yPos, w: 0.35, h: 0.35, fontSize: 12,
-          align: 'center', valign: 'middle',
-        });
-        slide7.addText(feat.label, {
-          x: 0.95, y: yPos - 0.05, w: 3.5, h: 0.25, fontSize: 10, color: '6b7280',
-        });
-        slide7.addText(feat.val, {
-          x: 0.95, y: yPos + 0.2, w: 3.5, h: 0.4, fontSize: 13, bold: true, color: '3d1a6e',
-        });
-      });
-
-      // ==================== SLIDE 10: NEARBY COMMERCIAL ECOSYSTEM ====================
-      const slideNearbyCommercial = pptx.addSlide();
-      slideNearbyCommercial.background = { color: 'FFFFFF' };
-
-      const ecosystemImageData = await getImageBase64(
-        data.slideNearbyCommercial.ecosystemImage,
-        'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
-      );
-
-      if (ecosystemImageData) {
-        slideNearbyCommercial.addImage({
-          data: ecosystemImageData,
-          x: 0, y: 0, w: 10, h: 7.5,
-          sizing: { type: 'cover', w: 10, h: 7.5 },
-          transparency: 80,
-        });
-      }
-
-      // Header
-      slideNearbyCommercial.addText(data.slideNearbyCommercial.slideNumber || '10', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slideNearbyCommercial.addText(data.slideNearbyCommercial.title || 'NEARBY COMMERCIAL', {
-        x: 1.15, y: 0.9, w: 8, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-      slideNearbyCommercial.addText(data.slideNearbyCommercial.subtitle || 'ECOSYSTEM', {
-        x: 1.15, y: 1.45, w: 8, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
-      });
-
-      const buildings = [
-        { name: data.slideNearbyCommercial.building1Name || 'THE WHITE CROW', distance: data.slideNearbyCommercial.building1Distance || '150 M', image: data.slideNearbyCommercial.building1Image },
-        { name: data.slideNearbyCommercial.building2Name || 'STELLAR', distance: data.slideNearbyCommercial.building2Distance || '200 M', image: data.slideNearbyCommercial.building2Image },
-        { name: data.slideNearbyCommercial.building3Name || 'TWIN LILAC', distance: data.slideNearbyCommercial.building3Distance || '500 M', image: data.slideNearbyCommercial.building3Image },
-        { name: data.slideNearbyCommercial.building4Name || 'NOVA', distance: data.slideNearbyCommercial.building4Distance || '450 M', image: data.slideNearbyCommercial.building4Image },
-        { name: data.slideNearbyCommercial.building5Name || 'ARISTA', distance: data.slideNearbyCommercial.building5Distance || '500 M', image: data.slideNearbyCommercial.building5Image },
-        { name: data.slideNearbyCommercial.building6Name || 'DOM ETERNUS', distance: data.slideNearbyCommercial.building6Distance || '700 M', image: data.slideNearbyCommercial.building6Image },
-        { name: data.slideNearbyCommercial.building7Name || 'PALLADIUM', distance: data.slideNearbyCommercial.building7Distance || '900 M', image: data.slideNearbyCommercial.building7Image },
-        { name: data.slideNearbyCommercial.building8Name || 'PENTAGON', distance: data.slideNearbyCommercial.building8Distance || '1.2 KM', image: data.slideNearbyCommercial.building8Image },
-      ];
-
-      // Draw 2 rows x 4 columns of buildings
-      const gridW = 2.1;
-      const gridH = 1.8;
-      const gridGapX = 0.2;
-      const gridGapY = 0.25;
-      const gridStartX = (10 - (4 * gridW + 3 * gridGapX)) / 2;
-
-      for (let i = 0; i < 8; i++) {
-        const b = buildings[i];
-        const colIndex = i % 4;
-        const rowIndex = Math.floor(i / 4);
-        const xPos = gridStartX + colIndex * (gridW + gridGapX);
-        const yPos = 2.6 + rowIndex * (gridH + gridGapY);
-
-        const bImgData = await getImageBase64(
-          b.image,
-          'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop'
-        );
-
-        // Background card shape
-        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos, w: gridW, h: gridH,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'e5e7eb', width: 1 },
-          rectRadius: 0.08,
-        });
-
-        // Building photo frame
-        if (bImgData) {
-          slideNearbyCommercial.addImage({
-            data: bImgData,
-            x: xPos, y: yPos, w: gridW, h: 1.1,
-            sizing: { type: 'cover', w: gridW, h: 1.1 },
-          });
-        } else {
-          slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
-            x: xPos, y: yPos, w: gridW, h: 1.1,
-            fill: { color: '3d1a6e' },
-            line: { type: 'none' },
-          });
-          slideNearbyCommercial.addText('🏢', {
-            x: xPos, y: yPos + 0.2, w: gridW, h: 0.6,
-            fontSize: 24, align: 'center', valign: 'middle',
-          });
-        }
-
-        // Overlay building name at the bottom of the photo frame
-        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos + 0.85, w: gridW, h: 0.25,
-          fill: { color: '3d1a6e', transparency: 10 },
-          line: { type: 'none' }
-        });
-        slideNearbyCommercial.addText(b.name.toUpperCase(), {
-          x: xPos, y: yPos + 0.85, w: gridW, h: 0.25,
-          fontSize: 7, bold: true, color: 'FFFFFF',
-          align: 'center', valign: 'middle',
-        });
-
-        // Distance text box
-        slideNearbyCommercial.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos + 1.1, w: gridW, h: 0.7,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'f97316', width: 1.5 }
-        });
-        slideNearbyCommercial.addText(b.distance, {
-          x: xPos, y: yPos + 1.1, w: gridW, h: 0.7,
-          fontSize: 12, bold: true, color: '3d1a6e',
-          align: 'center', valign: 'middle',
-        });
-      }
-
-      // ==================== SLIDE 8: BRAND LOCATION MAP ====================
-      const slide8 = pptx.addSlide();
-      slide8.background = { color: 'FFFFFF' };
-      
-      // Map image on right
-      const map8ImageData = await getImageBase64(
-        data.slide8.mapImage,
-        'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop'
-      );
-      
-      if (map8ImageData) {
-        slide8.addImage({
-          data: map8ImageData,
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          sizing: { type: 'cover', w: 5.5, h: 7.5 },
-        });
-        slide8.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 1.8, h: 7.5,
-          fill: { color: 'FFFFFF', transparency: 30 },
-          line: { type: 'none' }
-        });
-      } else {
-        slide8.addShape(pptx.ShapeType.rect, {
-          x: 4.5, y: 0, w: 5.5, h: 7.5,
-          fill: { color: 'e5e7eb' },
-          line: { type: 'none' }
-        });
-      }
-
-      // Header
-      slide8.addText(data.slide8.slideNumber || '08', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slide8.addText(data.slide8.title || 'BRAND LOCATION MAP', {
-        x: 1.15, y: 0.9, w: 3.5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-      slide8.addText(data.slide8.subtitle || 'BE IN THE COMPANY OF THE BEST', {
-        x: 1.15, y: 1.45, w: 3.5, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
-      });
-
-      const brandLines = (data.slide8.brandList || '').split('\n').filter(Boolean);
-      const legendColors = ['ec4899', 'eab308', 'ef4444', '22c55e', '3b82f6', 'a855f7'];
-
-      brandLines.forEach((line, i) => {
-        const yPos = 2.4 + (i * 0.7);
-        // Colored circle shape
-        slide8.addShape(pptx.ShapeType.ellipse, {
-          x: 0.5, y: yPos, w: 0.15, h: 0.15,
-          fill: { color: legendColors[i % legendColors.length] },
-          line: { type: 'none' },
-        });
-        slide8.addText(line.toUpperCase(), {
-          x: 0.8, y: yPos - 0.05, w: 3.5, h: 0.25, fontSize: 11, bold: true, color: '374151',
-        });
-      });
-
-      // ==================== SLIDE 9: LIFESTYLE AROUND YOU ====================
-      const slide9 = pptx.addSlide();
-      slide9.background = { color: 'FFFFFF' };
-      
-      // Header
-      slide9.addText(data.slide9.slideNumber || '09', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slide9.addText(data.slide9.title || 'LIFESTYLE AROUND YOU', {
-        x: 1.15, y: 0.9, w: 5, h: 0.6, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-      slide9.addText(data.slide9.subtitle || 'EVERYTHING NEARBY', {
-        x: 1.15, y: 1.45, w: 5, h: 0.55, fontSize: 24, bold: true, color: 'f97316',
-      });
-
-      const lifestyleCards = [
-        { label: data.slide9.label1 || 'FINE DINING', file: data.slide9.img1, defaultUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=500&auto=format&fit=crop' },
-        { label: data.slide9.label2 || 'SHOPPING', file: data.slide9.img2, defaultUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=500&auto=format&fit=crop' },
-        { label: data.slide9.label3 || 'FITNESS', file: data.slide9.img3, defaultUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&auto=format&fit=crop' },
-        { label: data.slide9.label4 || 'ENTERTAINMENT', file: data.slide9.img4, defaultUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop' },
-        { label: data.slide9.label5 || 'RESIDENTIAL CATCHMENT', file: data.slide9.img5, defaultUrl: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=500&auto=format&fit=crop' },
-      ];
-
-      const cardW = 1.7;
-      const cardGap = 0.15;
-      const startX = (10 - (5 * cardW + 4 * cardGap)) / 2;
-
-      for (let i = 0; i < 5; i++) {
-        const item = lifestyleCards[i];
-        const xPos = startX + i * (cardW + cardGap);
-        const yPos = 2.6;
-
-        const cardImgData = await getImageBase64(item.file, item.defaultUrl);
-
-        if (cardImgData) {
-          slide9.addImage({
-            data: cardImgData,
-            x: xPos, y: yPos, w: cardW, h: 2.8,
-            sizing: { type: 'cover', w: cardW, h: 2.8 }
-          });
-        } else {
-          slide9.addShape(pptx.ShapeType.rect, {
-            x: xPos, y: yPos, w: cardW, h: 2.8,
-            fill: { color: 'e5e7eb' },
-            line: { type: 'none' }
-          });
-        }
-
-        // Label box underneath
-        slide9.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos + 2.8, w: cardW, h: 0.7,
-          fill: { color: '3d1a6e' },
-          line: { type: 'none' }
-        });
-        slide9.addText(item.label.toUpperCase(), {
-          x: xPos, y: yPos + 2.8, w: cardW, h: 0.7,
-          fontSize: 8, bold: true, color: 'FFFFFF',
-          align: 'center', valign: 'middle',
-        });
-      }
-
-      // ==================== SLIDE 10: PROPERTY SPECIFICATIONS ====================
-      const slide10 = pptx.addSlide();
-      slide10.background = { color: 'FFFFFF' };
-      
-      // Header
-      slide10.addText(data.slide10.slideNumber || '10', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slide10.addText(data.slide10.title || 'PROPERTY SPECIFICATIONS', {
-        x: 1.15, y: 0.9, w: 5, h: 1.1, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-
-      const col1Data = [
-        { label: data.slide10.spec1Label || 'Project Type', val: data.slide10.spec1Value || 'Commercial', icon: '🏢' },
-        { label: data.slide10.spec2Label || 'Location', val: data.slide10.spec2Value || 'Sindhu Bhavan Road,\nBodakdev, Ahmedabad', icon: '📍' },
-        { label: data.slide10.spec3Label || 'Jewellery Brands', val: data.slide10.spec3Value || 'Tanishq, Malabar,\nPC Jeweller & More', icon: '💎' },
-        { label: data.slide10.spec4Label || 'Apparel Brands', val: data.slide10.spec4Value || 'Zara, H&M, Trends,\nLifestyle & More', icon: '👕' },
-        { label: data.slide10.spec5Label || 'F&B Outlets', val: data.slide10.spec5Value || "McDonald's, Starbucks,\nThe White Crow & More", icon: '🍽️' },
-      ];
-
-      const col2Data = [
-        { label: data.slide10.spec6Label || 'Ground Floor Height', val: data.slide10.spec6Value || "12'5\"", icon: '↕️' },
-        { label: data.slide10.spec7Label || 'First Floor Height', val: data.slide10.spec7Value || "10'5\"", icon: '↕️' },
-        { label: data.slide10.spec8Label || 'Second Floor Height', val: data.slide10.spec8Value || "9'5\"", icon: '↕️' },
-        { label: data.slide10.spec9Label || 'Possession', val: data.slide10.spec9Value || 'March 2027', icon: '📅' },
-        { label: data.slide10.spec10Label || 'Google Maps', val: data.slide10.spec10Value || 'Scan QR Code', icon: '🔍' },
-      ];
-
-      // Render Col 1
-      col1Data.forEach((item, i) => {
-        const yPos = 2.4 + (i * 0.95);
-        // Orange bordered icon box
-        slide10.addShape(pptx.ShapeType.rect, {
-          x: 0.5, y: yPos, w: 0.3, h: 0.3,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'f97316', width: 1.5 },
-          rectRadius: 0.05,
-        });
-        slide10.addText(item.icon, {
-          x: 0.5, y: yPos, w: 0.3, h: 0.3, fontSize: 10,
-          align: 'center', valign: 'middle',
-        });
-        slide10.addText(item.label, {
-          x: 0.9, y: yPos - 0.05, w: 2.8, h: 0.2, fontSize: 8, color: '6b7280',
-        });
-        slide10.addText(item.val, {
-          x: 0.9, y: yPos + 0.15, w: 2.8, h: 0.4, fontSize: 10, bold: true, color: '3d1a6e',
-        });
-      });
-
-      // Render Col 2
-      col2Data.forEach((item, i) => {
-        const yPos = 2.4 + (i * 0.95);
-        // Orange bordered icon box
-        slide10.addShape(pptx.ShapeType.rect, {
-          x: 4.0, y: yPos, w: 0.3, h: 0.3,
-          fill: { color: 'FFFFFF' },
-          line: { color: 'f97316', width: 1.5 },
-          rectRadius: 0.05,
-        });
-        slide10.addText(item.icon, {
-          x: 4.0, y: yPos, w: 0.3, h: 0.3, fontSize: 10,
-          align: 'center', valign: 'middle',
-        });
-        slide10.addText(item.label, {
-          x: 4.4, y: yPos - 0.05, w: 2.8, h: 0.2, fontSize: 8, color: '6b7280',
-        });
-        slide10.addText(item.val, {
-          x: 4.4, y: yPos + 0.15, w: 2.8, h: 0.4, fontSize: 10, bold: true, color: '3d1a6e',
-        });
-      });
-
-      // Render QR Code
-      const qrImageData = await getImageBase64(
-        data.slide10.qrImage,
-        `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(data.slide10.qrUrl || 'https://maps.google.com')}`
-      );
-
-      if (qrImageData) {
-        slide10.addImage({
-          data: qrImageData,
-          x: 7.5, y: 2.6, w: 2.0, h: 2.0,
-        });
-        // Draw a dashed border box around the QR code
-        slide10.addShape(pptx.ShapeType.rect, {
-          x: 7.4, y: 2.5, w: 2.2, h: 2.2,
-          fill: { type: 'none' },
-          line: { color: 'd1d5db', width: 1.5, dashType: 'dash' },
-          rectRadius: 0.08,
-        });
-      }
-
-      // ==================== SLIDE 11: WHY INVEST ====================
-      const slide11 = pptx.addSlide();
-      slide11.background = { color: 'FFFFFF' };
-
-      // Header
-      slide11.addText(data.slide11.slideNumber || '11', {
-        x: 0.5, y: 1.0, w: 0.55, h: 0.5, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-      });
-
-      slide11.addText(data.slide11.title || 'WHY INVEST IN MADHAV HIGHSTREET?', {
-        x: 1.15, y: 0.9, w: 8, h: 1.1, fontSize: 30, bold: true, color: '3d1a6e',
-      });
-
-      const row1Cards = [
-        { label: data.slide11.card1Label || 'Prime Location\nHigh Visibility', icon: '📍' },
-        { label: data.slide11.card2Label || 'Surrounded by\nPremium Brands', icon: '🛍️' },
-        { label: data.slide11.card3Label || 'High Footfall\nCatchment', icon: '👥' },
-        { label: data.slide11.card4Label || 'Modern Architecture\n& Design', icon: '🏢' },
-      ];
-
-      const row2Cards = [
-        { label: data.slide11.card5Label || 'Excellent\nConnectivity & Access', icon: '🛣️' },
-        { label: data.slide11.card6Label || 'Strong Investment\n& Returns', icon: '📈' },
-        { label: data.slide11.card7Label || 'Strong Investment\nPotential', icon: '📊' },
-      ];
-
-      // Draw Row 1
-      row1Cards.forEach((item, i) => {
-        const xPos = 0.5 + i * 2.3;
-        const yPos = 2.4;
-        slide11.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos, w: 2.1, h: 1.6,
-          fill: { color: 'f9fafb' },
-          line: { color: 'e5e7eb', width: 1 },
-          rectRadius: 0.08,
-        });
-        slide11.addShape(pptx.ShapeType.ellipse, {
-          x: xPos + 0.85, y: yPos + 0.15, w: 0.4, h: 0.4,
-          fill: { color: 'fff7ed' },
-          line: { color: 'ffedd5', width: 1 },
-        });
-        slide11.addText(item.icon, {
-          x: xPos + 0.85, y: yPos + 0.15, w: 0.4, h: 0.4, fontSize: 11,
-          align: 'center', valign: 'middle',
-        });
-        slide11.addText(item.label.toUpperCase(), {
-          x: xPos + 0.1, y: yPos + 0.65, w: 1.9, h: 0.8,
-          fontSize: 8, bold: true, color: '3d1a6e',
-          align: 'center', valign: 'middle',
-        });
-      });
-
-      // Draw Row 2
-      row2Cards.forEach((item, i) => {
-        const xPos = 1.65 + i * 2.3;
-        const yPos = 4.3;
-        slide11.addShape(pptx.ShapeType.rect, {
-          x: xPos, y: yPos, w: 2.1, h: 1.6,
-          fill: { color: 'f9fafb' },
-          line: { color: 'e5e7eb', width: 1 },
-          rectRadius: 0.08,
-        });
-        slide11.addShape(pptx.ShapeType.ellipse, {
-          x: xPos + 0.85, y: yPos + 0.15, w: 0.4, h: 0.4,
-          fill: { color: 'fff7ed' },
-          line: { color: 'ffedd5', width: 1 },
-        });
-        slide11.addText(item.icon, {
-          x: xPos + 0.85, y: yPos + 0.15, w: 0.4, h: 0.4, fontSize: 11,
-          align: 'center', valign: 'middle',
-        });
-        slide11.addText(item.label.toUpperCase(), {
-          x: xPos + 0.1, y: yPos + 0.65, w: 1.9, h: 0.8,
-          fontSize: 8, bold: true, color: '3d1a6e',
-          align: 'center', valign: 'middle',
-        });
-      });
-
-      // ==================== SLIDE 15: CONTACT DETAILS ====================
-      const slideContact = pptx.addSlide();
-      slideContact.background = { color: '1a0a2e' };
-
-      // Background decorative icon watermark
-      slideContact.addText('🏢', {
-        x: 3.5, y: 1.7, w: 3, h: 3,
-        fontSize: 180, align: 'center', valign: 'middle',
-        color: 'FFFFFF', transparency: 95,
-      });
-
-      // Top Left: Slide number badge
-      slideContact.addText(data.slideContact.slideNumber || '15', {
-        x: 0.5, y: 0.8, w: 0.6, h: 0.6, fontSize: 14, bold: true,
-        color: 'FFFFFF', fill: { color: '3d1a6e' },
-        align: 'center', valign: 'middle',
-        rectRadius: 0.1,
-      });
-
-      // Main heading
-      slideContact.addText((data.slideContact.heading || "LET'S BUILD\nSOMETHING ICONIC\nTOGETHER").toUpperCase(), {
-        x: 0.5, y: 1.8, w: 4.8, h: 2.5, fontSize: 34, bold: true,
-        color: 'FFFFFF', fontFace: 'Arial', lineSpacing: 1.1,
-      });
-
-      // Company info
-      const companyLogoData = await getImageBase64(data.slideContact.companyLogo, '');
-      if (companyLogoData) {
-        slideContact.addImage({
-          data: companyLogoData,
-          x: 0.5, y: 5.2, w: 0.6, h: 0.6,
-          sizing: { type: 'cover', w: 0.6, h: 0.6 }
-        });
-      } else {
-        slideContact.addShape(pptx.ShapeType.rect, {
-          x: 0.5, y: 5.2, w: 0.6, h: 0.6,
-          fill: { color: 'f97316' },
-          line: { type: 'none' },
-          rectRadius: 0.08,
-        });
-        slideContact.addText('A', {
-          x: 0.5, y: 5.2, w: 0.6, h: 0.6, fontSize: 20, bold: true,
-          color: 'FFFFFF', align: 'center', valign: 'middle',
-        });
-      }
-
-      slideContact.addText(data.slideContact.companyName || 'AESTHETIC ARC', {
-        x: 1.25, y: 5.2, w: 3.5, h: 0.3, fontSize: 14, bold: true, color: 'FFFFFF',
-      });
-      slideContact.addText(data.slideContact.companyTagline || 'PROPERTY LEASING COMPANY', {
-        x: 1.25, y: 5.5, w: 3.5, h: 0.3, fontSize: 8, color: 'FFFFFF', transparency: 30,
-      });
-
-      // Contact details
-      const cX = 5.6;
-      slideContact.addText('GET IN TOUCH', {
-        x: cX, y: 1.0, w: 3.8, h: 0.3, fontSize: 10, bold: true,
-        color: 'FFFFFF', letterSpacing: 1, transparency: 20,
-      });
-
-      const contactItems = [
-        { icon: '📞', text1: data.slideContact.phone1 || '+91 97129 06363', text2: data.slideContact.phone2 || '+91 97129 06364' },
-        { icon: '✉️', text1: data.slideContact.email || 'info@aestheticarc.com' },
-        { icon: '🌐', text1: data.slideContact.website || 'www.aestheticarc.com' },
-        { icon: '📍', text1: data.slideContact.address || '418, 4th Floor, Shivalik Highstreet,\nNear Rajpath Club, Bodakdev,\nAhmedabad - 380054, Gujarat, India' },
-      ];
-
-      contactItems.forEach((item, i) => {
-        const yPos = 1.6 + i * 1.25;
-        // Circular border box around emoji icon
-        slideContact.addShape(pptx.ShapeType.ellipse, {
-          x: cX, y: yPos, w: 0.35, h: 0.35,
-          fill: { type: 'none' },
-          line: { color: 'FFFFFF', width: 1.5, transparency: 70 },
-        });
-        slideContact.addText(item.icon, {
-          x: cX, y: yPos, w: 0.35, h: 0.35, fontSize: 10,
-          align: 'center', valign: 'middle',
-        });
-
-        // Contact info text
-        if (item.text2) {
-          slideContact.addText(item.text1, {
-            x: cX + 0.5, y: yPos - 0.1, w: 3.3, h: 0.25, fontSize: 10, color: 'FFFFFF',
-          });
-          slideContact.addText(item.text2, {
-            x: cX + 0.5, y: yPos + 0.15, w: 3.3, h: 0.25, fontSize: 10, color: 'FFFFFF',
-          });
-        } else {
-          slideContact.addText(item.text1, {
-            x: cX + 0.5, y: yPos - 0.05, w: 3.3, h: 0.8, fontSize: 10, color: 'FFFFFF',
-            valign: 'middle',
-          });
-        }
-      });
-
-      // ==================== SLIDE 16: THANK YOU ====================
-      const slide12 = pptx.addSlide();
-      slide12.background = { color: '1f2937' };
-      
-      // Decorative accent line
-      slide12.addShape(pptx.ShapeType.rect, {
-        x: 4, y: 2.5, w: 2, h: 0.05,
-        fill: { color: 'f97316' },
-        line: { type: 'none' }
-      });
-
-      slide12.addText('Thank You!', {
-        x: 1, y: 2.8, w: 8, h: 1.2, fontSize: 48, bold: true,
-        color: 'FFFFFF', align: 'center', fontFace: 'Arial',
-      });
-      slide12.addText(data.slide1.companyName || 'AESTHETIC ARC', {
-        x: 1, y: 4.0, w: 8, h: 0.5, fontSize: 18, bold: true,
-        color: 'f97316', align: 'center', fontFace: 'Arial',
-      });
-      slide12.addText(data.slide1.companyTagline || 'PROPERTY LEASING COMPANY', {
-        x: 1, y: 4.5, w: 8, h: 0.4, fontSize: 12,
-        color: 'FFFFFF', align: 'center', fontFace: 'Arial',
-      });
-
-      // Save the presentation
-      await pptx.writeFile({ fileName: 'presentation.pptx' });
+      await generateSnapshotPDF(slideSnapshots, totalSlides, setIsGenerating);
       alert('Presentation downloaded successfully!');
     } catch (error) {
-      console.error('Error generating PPT:', error);
-      alert('Failed to generate presentation. Please try again.');
-    } finally {
-      setIsGenerating(false);
+      console.error('Error generating presentation:', error);
+      alert('Failed to generate presentation. Please check console logs.');
     }
   };
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f4f7f4' }}>
+  // Finalize the current slide: wait for images, capture snapshot, advance
+  const handleFinalizeSlide = useCallback(async () => {
+    if (!previewRef.current || isFinalizing) return;
+    setIsFinalizing(true);
+    setFinalizeSuccess(false);
+
+    try {
+      // Wait for all images inside the preview to load
+      const images = previewRef.current.querySelectorAll('img');
+      await Promise.all(
+        Array.from(images).map(img => {
+          if (img.complete && img.naturalHeight > 0) return Promise.resolve();
+          return new Promise<void>((resolve) => {
+            img.onload = () => resolve();
+            img.onerror = () => resolve(); // Don't block on broken images
+            // Timeout safety net
+            setTimeout(resolve, 5000);
+          });
+        })
+      );
+
+      // Small delay to ensure rendering is complete
+      await new Promise(r => setTimeout(r, 300));
+
+      // Capture at 3x resolution for high-quality output
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+        logging: false,
+        imageTimeout: 10000,
+      });
+
+      const snapshotDataUrl = canvas.toDataURL('image/png', 1.0);
+
+      // Save the snapshot and mark as finalized
+      finalizeSlide(step, snapshotDataUrl);
+
+      // Show success flash
+      setFinalizeSuccess(true);
+      setTimeout(() => setFinalizeSuccess(false), 2000);
+
+      // Auto-advance to next unfinalized slide
+      setTimeout(() => {
+        if (step < STEPS.length - 1) {
+          // Find the next unfinalized slide
+          let nextStep = step + 1;
+          for (let i = step + 1; i < STEPS.length; i++) {
+            if (slideStatuses[i] !== 'finalized') {
+              nextStep = i;
+              break;
+            }
+          }
+          setStep(nextStep);
+        }
+      }, 800);
+    } catch (error) {
+      console.error('Error capturing slide snapshot:', error);
+      alert('Failed to capture slide. Please try again.');
+    } finally {
+      setIsFinalizing(false);
+    }
+  }, [step, isFinalizing, finalizeSlide, slideStatuses]);
+
+  // Status badge helper
+  const getStatusBadge = (index: number) => {
+    const status = slideStatuses[index];
+    if (status === 'finalized') return { icon: '✅', color: '#22c55e', label: 'Finalized' };
+    if (status === 'editing') return { icon: '📝', color: '#f59e0b', label: 'Editing' };
+    return { icon: '⏳', color: 'rgba(255,255,255,0.4)', label: 'Pending' };
+  };
+
+    return (
+    <div style={{ minHeight: '100vh', background: '#FAFBFD' }}>
       {/* ── HEADER ── */}
-      <div style={{ borderBottom: '2px solid #d1fae5', padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 50 }}>
+      <div style={{ borderBottom: '2px solid #E2E8F0', padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#14532d,#166534)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 18, color: '#fff', boxShadow: '0 4px 12px rgba(20,83,45,0.4)' }}>P</div>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#7D3C70,#652D5A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 18, color: '#fff', boxShadow: '0 4px 12px rgba(125,60,112,0.4)' }}>P</div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 17, color: '#14532d' }}>PPT Generator</div>
+            <div style={{ fontWeight: 800, fontSize: 17, color: '#7D3C70' }}>PPT Generator</div>
             <div style={{ fontSize: 11, color: '#6b7280' }}>Real Estate Presentation Builder</div>
           </div>
         </div>
-        <button
-          onClick={() => setShowAllSlides(v => !v)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 20px', background: showAllSlides ? '#14532d' : '#fff', border: '2px solid #14532d', borderRadius: 9, color: showAllSlides ? '#fff' : '#14532d', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
-        >
-          <Eye size={15} /> {showAllSlides ? 'Back to Edit' : 'Preview All Slides'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Progress indicator in header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', background: allFinalized ? '#dcfce7' : '#FAFBFD', borderRadius: 8, border: `1px solid ${allFinalized ? '#22c55e' : '#E2E8F0'}` }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: allFinalized ? '#16a34a' : '#324D7B' }}>
+              {allFinalized ? '✅' : '📊'} {finalizedCount} / {totalSlides} Slides Finalized
+            </span>
+          </div>
+          <button
+            onClick={() => setShowAllSlides(v => !v)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 20px', background: showAllSlides ? '#7D3C70' : '#fff', border: '2px solid #7D3C70', borderRadius: 9, color: showAllSlides ? '#fff' : '#7D3C70', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+          >
+            <Eye size={15} /> {showAllSlides ? 'Back to Edit' : 'Preview All Slides'}
+          </button>
+        </div>
       </div>
 
       {showAllSlides ? (
         /* ── ALL SLIDES VIEW ── */
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
-          <h2 style={{ fontSize: 24, fontWeight: 800, color: '#14532d', marginBottom: 32, textAlign: 'center' }}>All {SLIDE_PREVIEWS.length} Slides Preview</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: '#7D3C70', marginBottom: 32, textAlign: 'center' }}>All {SLIDE_PREVIEWS.length} Slides Preview</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
             {SLIDE_PREVIEWS.map((SlideComp, i) => (
               <div key={i}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#14532d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: '#fff' }}>{i + 1}</div>
-                  <span style={{ fontWeight: 700, color: '#14532d', fontSize: 15 }}>{STEPS[i].title}</span>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#7D3C70', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: '#fff' }}>{i + 1}</div>
+                  <span style={{ fontWeight: 700, color: '#7D3C70', fontSize: 15 }}>{STEPS[i].title}</span>
+                  <span style={{ fontSize: 14, marginLeft: 4 }}>{getStatusBadge(i).icon}</span>
                 </div>
                 <SlideComp />
               </div>
@@ -3143,51 +2203,87 @@ export default function StepperApp() {
         /* ── STEPPER FORM ── */
         <div style={{ display: 'grid', gridTemplateColumns: '270px 1fr', minHeight: 'calc(100vh - 66px)' }}>
           {/* ── LEFT: Step Navigator (Dark Green Sidebar) ── */}
-          <div style={{ padding: '28px 14px', background: '#14532d', borderRight: '3px solid #166534' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#86efac', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 20, paddingLeft: 8 }}>Form Steps</div>
+          <div style={{ padding: '28px 14px', background: '#7D3C70', borderRight: '3px solid #652D5A', overflowY: 'auto' }}>
+            {/* Progress counter */}
+            <div style={{ padding: '10px 12px', marginBottom: 16, background: 'rgba(255,255,255,0.1)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#FF8435', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Progress</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{finalizedCount} / {totalSlides}</span>
+              </div>
+              {/* Progress bar */}
+              <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.15)', overflow: 'hidden' }}>
+                <div style={{ width: `${(finalizedCount / totalSlides) * 100}%`, height: '100%', borderRadius: 3, background: allFinalized ? '#22c55e' : 'linear-gradient(90deg, #FF8435, #7D3C70)', transition: 'width 0.5s ease' }} />
+              </div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
+                {allFinalized ? '✅ All slides finalized — Ready to export!' : 'Finalize all slides to enable PDF export'}
+              </div>
+            </div>
+
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#FF8435', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12, paddingLeft: 8 }}>Slides</div>
             {STEPS.map((s, i) => {
               const isActive = i === step;
-              const isDone = i < step;
+              const badge = getStatusBadge(i);
+              const isFinalized = slideStatuses[i] === 'finalized';
+              const isEditing = slideStatuses[i] === 'editing';
               return (
                 <button
                   key={i}
                   onClick={() => setStep(i)}
                   style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 14px', borderRadius: 10, marginBottom: 6,
-                    background: isActive ? 'rgba(255,255,255,0.18)' : isDone ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    border: isActive ? '2px solid #86efac' : isDone ? '2px solid rgba(255,255,255,0.15)' : '2px solid transparent',
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', borderRadius: 10, marginBottom: 4,
+                    background: isActive ? 'rgba(255,255,255,0.18)' : isFinalized ? 'rgba(255,132,53,0.12)' : isEditing ? 'rgba(245,158,11,0.08)' : 'transparent',
+                    border: isActive ? '2px solid #FF8435' : isFinalized ? '2px solid rgba(255,132,53,0.3)' : '2px solid transparent',
                     cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left',
                   }}
                 >
                   <div style={{
-                    width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                    background: isActive ? '#fff' : isDone ? '#4ade80' : 'rgba(255,255,255,0.15)',
-                    border: `2px solid ${isActive ? '#86efac' : isDone ? '#4ade80' : 'rgba(255,255,255,0.25)'}`,
+                    width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                    background: isFinalized ? '#22c55e' : isActive ? '#fff' : isEditing ? '#f59e0b' : 'rgba(255,255,255,0.15)',
+                    border: `2px solid ${isFinalized ? '#22c55e' : isActive ? '#FF8435' : isEditing ? '#f59e0b' : 'rgba(255,255,255,0.25)'}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 800, fontSize: 13, color: isActive ? '#14532d' : '#fff',
+                    fontWeight: 800, fontSize: 12, color: isFinalized ? '#fff' : isActive ? '#7D3C70' : '#fff',
                   }}>
-                    {isDone ? '✓' : s.num}
+                    {isFinalized ? '✓' : s.num}
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: isActive ? '#fff' : isDone ? '#bbf7d0' : 'rgba(255,255,255,0.7)' }}>{s.title}</div>
-                    <div style={{ fontSize: 11, color: isActive ? '#86efac' : 'rgba(255,255,255,0.4)' }}>{s.subtitle}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 12, color: isActive ? '#fff' : isFinalized ? '#FFF2E9' : 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</span>
+                    </div>
+                    <div style={{ fontSize: 10, color: isActive ? '#FF8435' : 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: 10 }}>{badge.icon}</span>
+                      <span>{badge.label}</span>
+                    </div>
                   </div>
                 </button>
               );
             })}
 
             {/* Divider */}
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', margin: '20px 8px' }} />
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', margin: '16px 8px' }} />
 
             {/* Download button */}
             <div style={{ padding: '0 4px' }}>
               <button
-                onClick={handleDownloadPPT}
-                disabled={isGenerating}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px', background: '#fff', border: '2px solid #86efac', borderRadius: 10, color: '#14532d', fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.25)', transition: 'all 0.2s', opacity: isGenerating ? 0.6 : 1 }}
+                onClick={handleDownloadPDF}
+                disabled={isGenerating || !allFinalized}
+                title={!allFinalized ? `Finalize all ${totalSlides} slides to enable PDF download` : 'Generate PDF from finalized slides'}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  padding: '13px',
+                  background: allFinalized ? '#fff' : 'rgba(255,255,255,0.15)',
+                  border: `2px solid ${allFinalized ? '#FF8435' : 'rgba(255,255,255,0.1)'}`,
+                  borderRadius: 10,
+                  color: allFinalized ? '#7D3C70' : 'rgba(255,255,255,0.3)',
+                  fontWeight: 800, fontSize: 14,
+                  cursor: allFinalized ? 'pointer' : 'not-allowed',
+                  boxShadow: allFinalized ? '0 4px 16px rgba(0,0,0,0.25)' : 'none',
+                  transition: 'all 0.3s',
+                  opacity: isGenerating ? 0.6 : 1,
+                }}
               >
-                <Download size={17} /> {isGenerating ? 'Generating...' : 'Download PPT'}
+                <Download size={17} />
+                {isGenerating ? 'Generating...' : !allFinalized ? `Finalize All (${finalizedCount}/${totalSlides})` : 'Download PDF'}
               </button>
             </div>
           </div>
@@ -3195,18 +2291,47 @@ export default function StepperApp() {
           {/* ── RIGHT: Form + Preview (White) ── */}
           <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', overflow: 'auto', background: '#fff' }}>
             {/* Step header */}
-            <div style={{ padding: '22px 32px', borderBottom: '2px solid #d1fae5', background: '#f0fdf4' }}>
+            <div style={{ padding: '22px 32px', borderBottom: '2px solid #E2E8F0', background: '#ffffff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#14532d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 17, color: '#fff', boxShadow: '0 4px 12px rgba(20,83,45,0.3)' }}>{step + 1}</div>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#7D3C70', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 17, color: '#fff', boxShadow: '0 4px 12px rgba(125,60,112,0.3)' }}>{step + 1}</div>
                 <div>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#14532d', lineHeight: 1 }}>{STEPS[step].title}</h2>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#7D3C70', lineHeight: 1 }}>{STEPS[step].title}</h2>
                   <p style={{ fontSize: 13, color: '#6b7280', marginTop: 3 }}>{STEPS[step].subtitle}</p>
                 </div>
+                {/* Current slide status badge */}
+                <div style={{
+                  marginLeft: 12,
+                  padding: '4px 12px',
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: currentStatus === 'finalized' ? '#f0fdf4' : currentStatus === 'editing' ? '#fef3c7' : '#f3f4f6',
+                  color: currentStatus === 'finalized' ? '#16a34a' : currentStatus === 'editing' ? '#d97706' : '#6b7280',
+                  border: `1px solid ${currentStatus === 'finalized' ? '#bbf7d0' : currentStatus === 'editing' ? '#fcd34d' : '#d1d5db'}`,
+                }}>
+                  {getStatusBadge(step).icon} {getStatusBadge(step).label}
+                </div>
                 {/* Step progress dots */}
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 7, alignItems: 'center' }}>
-                  {STEPS.map((_, i) => (
-                    <div key={i} onClick={() => setStep(i)} style={{ width: i === step ? 28 : 9, height: 9, borderRadius: 5, background: i === step ? '#14532d' : i < step ? '#4ade80' : '#d1fae5', cursor: 'pointer', transition: 'all 0.3s' }} />
-                  ))}
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: 5, alignItems: 'center' }}>
+                  {STEPS.map((_, i) => {
+                    const sts = slideStatuses[i];
+                    return (
+                      <div
+                        key={i}
+                        onClick={() => setStep(i)}
+                        title={`Slide ${i + 1}: ${getStatusBadge(i).label}`}
+                        style={{
+                          width: i === step ? 24 : 9,
+                          height: 9,
+                          borderRadius: 5,
+                          background: sts === 'finalized' ? '#7D3C70' : sts === 'editing' ? '#f59e0b' : i === step ? '#FF8435' : '#FFD3B6',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s',
+                          border: i === step ? '1px solid #FF8435' : 'none',
+                        }}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -3214,23 +2339,23 @@ export default function StepperApp() {
             {/* Form + preview split */}
             <div style={{ display: 'grid', gridTemplateColumns: '440px 1fr', overflow: 'hidden' }}>
               {/* Form panel */}
-              <div style={{ overflowY: 'auto', padding: '26px 30px', borderRight: '2px solid #d1fae5', background: '#fff' }}>
+              <div style={{ overflowY: 'auto', padding: '26px 30px', borderRight: '2px solid #E2E8F0', background: '#fff' }}>
                 <CurrentForm />
 
                 {/* Next / Prev */}
                 <div style={{ display: 'flex', gap: 10, marginTop: 24, paddingTop: 20, borderTop: '2px solid #d1fae5' }}>
                   {step > 0 && (
-                    <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', background: '#fff', border: '2px solid #14532d', borderRadius: 9, color: '#14532d', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+                    <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', background: '#fff', border: '2px solid #7D3C70', borderRadius: 9, color: '#7D3C70', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
                       <ChevronLeft size={16} /> Previous
                     </button>
                   )}
                   {step < STEPS.length - 1 && (
-                    <button onClick={() => setStep(s => s + 1)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', background: '#14532d', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(20,83,45,0.4)' }}>
+                    <button onClick={() => setStep(s => s + 1)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', background: '#7D3C70', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(125,60,112,0.4)' }}>
                       Next <ChevronRight size={16} />
                     </button>
                   )}
                   {step === STEPS.length - 1 && (
-                    <button onClick={() => setShowAllSlides(true)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', background: '#14532d', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(20,83,45,0.4)' }}>
+                    <button onClick={() => setShowAllSlides(true)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', background: '#7D3C70', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(125,60,112,0.4)' }}>
                       <Eye size={16} /> Preview All
                     </button>
                   )}
@@ -3238,18 +2363,92 @@ export default function StepperApp() {
               </div>
 
               {/* Live preview panel */}
-              <div style={{ overflowY: 'auto', padding: '26px', background: '#f0fdf4', display: 'flex', flexDirection: 'column', gap: 14, borderLeft: '2px solid #d1fae5' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#14532d', animation: 'pulse 2s infinite' }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#14532d', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Live Preview — Slide {step + 1}</span>
+              <div style={{ overflowY: 'auto', padding: '26px', background: '#ffffff', display: 'flex', flexDirection: 'column', gap: 14, borderLeft: '2px solid #FFF2E9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: currentStatus === 'finalized' ? '#7D3C70' : '#FF8435', animation: 'pulse 2s infinite' }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#7D3C70', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Live Preview — Slide {step + 1}</span>
+                    {currentStatus === 'finalized' && (
+                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: '#FAFBFD', color: '#7D3C70', fontWeight: 700 }}>✅ Finalized</span>
+                    )}
+                  </div>
+                  <button onClick={() => setIsJsonPanelOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', border: '1px solid #14532d', borderRadius: 6, color: '#7D3C70', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    <Code size={14} /> Preview JSON
+                  </button>
                 </div>
-                <CurrentPreview />
-                <p style={{ fontSize: 11, color: '#6b7280', textAlign: 'center' }}>✏️ Changes reflect instantly as you type</p>
+
+                {/* Preview container with ref for html2canvas capture */}
+                <div ref={previewRef}>
+                  <CurrentPreview />
+                </div>
+
+                {/* Finalize button */}
+                <button
+                  onClick={handleFinalizeSlide}
+                  disabled={isFinalizing}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    padding: '14px 24px',
+                    background: finalizeSuccess ? 'linear-gradient(135deg, #FF8435, #7D3C70)' : currentStatus === 'finalized' ? 'linear-gradient(135deg, #7D3C70, #652D5A)' : 'linear-gradient(135deg, #7D3C70, #FF8435)',
+                    border: 'none',
+                    borderRadius: 12,
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: 15,
+                    cursor: isFinalizing ? 'wait' : 'pointer',
+                    boxShadow: finalizeSuccess ? '0 6px 24px rgba(255,132,53,0.5)' : '0 4px 20px rgba(125,60,112,0.4)',
+                    transition: 'all 0.3s ease',
+                    opacity: isFinalizing ? 0.7 : 1,
+                    transform: finalizeSuccess ? 'scale(1.02)' : 'scale(1)',
+                  }}
+                >
+                  {isFinalizing ? (
+                    <>
+                      <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                      Capturing Slide...
+                    </>
+                  ) : finalizeSuccess ? (
+                    <>
+                      <CheckCircle2 size={18} />
+                      Slide Finalized! ✓
+                    </>
+                  ) : currentStatus === 'finalized' ? (
+                    <>
+                      <CheckCircle2 size={18} />
+                      Re-Finalize This Slide
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={18} />
+                      ✅ Finalize This Slide
+                    </>
+                  )}
+                </button>
+
+                <p style={{ fontSize: 11, color: '#6b7280', textAlign: 'center' }}>
+                  {currentStatus === 'finalized'
+                    ? '✅ This slide has been captured. Editing will require re-finalization.'
+                    : '✏️ Changes reflect instantly as you type. Finalize when ready.'}
+                </p>
               </div>
             </div>
           </div>
         </div>
       )}
+      <JsonPreviewPanel
+        isOpen={isJsonPanelOpen}
+        onClose={() => setIsJsonPanelOpen(false)}
+        onDownloadPDF={handleDownloadPDF}
+        isGeneratingPDF={isGenerating}
+        onApply={() => {
+          setIsJsonPanelOpen(false);
+          setShowAllSlides(true);
+        }}
+      />
     </div>
   );
 }
